@@ -24,3 +24,5 @@ Unit power is a simple calculation used to simplify how strong your army is. It'
 HP+ATK*3+DEF*2+SPD*5A
 
 That should explain the game. Good luck and massacre those bugs/humans
+
+***DISCLAIMER: AI was used for the ASCII art of the border and other art assets. the algorithms were made by me.***
