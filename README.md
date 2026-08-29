@@ -3,6 +3,8 @@
 
 Welcome to warfront. The world is currently at war. The Humans on planet earth were destroyed by the newly mutated, battle ready bugs.
 
+First compile the game based on your OS: Use Linux for Linux OS' (or android's, tho the ASCII art is glitched on most android compilers because of the small screen size) or use the regular version for windows.
+
 ***How to play:***
 Start by picking a faction. The two factions are different in two ways:
 1. Bugs are cheaper so you can buy more of them
