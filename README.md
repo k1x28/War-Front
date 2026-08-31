@@ -1,7 +1,7 @@
 # War-Front
 ***"A game made in C++ with entirely ASCII graphics. Make army and conquer the enemy faction."***
 
-Welcome to warfront. The world is currently at war. The Humans on planet earth were destroyed by the newly mutated, battle ready bugs.
+Welcome to warfront. The world is currently at war. The Humans on planet earth were attacked by the newly evolved, battle ready bugs.
 
 First compile the game based on your OS: Use Linux for Linux OS' (or android's, tho the ASCII art is glitched on most android compilers because of the small screen size) or use the regular version for windows.
 
