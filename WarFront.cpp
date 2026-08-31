@@ -23,6 +23,27 @@ struct Unit
 };
 
 // ============================================================================
+// SCENARIO STRUCT
+// ============================================================================
+
+struct Scenario
+{
+    string name;
+    string description;
+
+    int startingCash;
+
+    int bankTier;
+    int trainingTier;
+    int nuclearTier;
+    int weaponTier;
+    int attackTrainingTier;
+    int mobilityTier;
+
+    int startingArmy[5];
+};
+
+// ============================================================================
 // CONSTANTS
 // ============================================================================
 
@@ -31,15 +52,122 @@ const int MAX_UNITS = 5;
 const int HUMAN = 0;
 const int BUGS = 1;
 
-// Console colours
+// ============================================================================
+// SCENARIOS
+// ============================================================================
+
+const int SCENARIO_STANDARD = 0;
+const int SCENARIO_ROBOTS = 1;
+const int SCENARIO_MUTANTS = 2;
+const int SCENARIO_REBELS = 3;
+
+const int MAX_SCENARIOS = 4;
+
+// ============================================================================
+// UPGRADE LIMITS
+// ============================================================================
+
+const int MAX_BANK = 5;
+const int MAX_TRAINING = 5;
+const int MAX_NUCLEAR = 3;
+const int MAX_WEAPON = 4;
+
+const int MAX_ATTACK_TRAINING = 5;
+const int MAX_MOBILITY = 1;
+
+// ============================================================================
+// UPGRADE COSTS
+// ============================================================================
+
+const int BANK_COSTS[5] =
+{
+    250,
+    500,
+    750,
+    1000,
+    1500
+};
+
+const int TRAINING_COSTS[5] =
+{
+    200,
+    400,
+    600,
+    850,
+    1200
+};
+
+const int NUCLEAR_COSTS[3] =
+{
+    500,
+    1000,
+    2000
+};
+
+const int WEAPON_COSTS[4] =
+{
+    300,
+    750,
+    1500,
+    2500
+};
+
+const int ATTACK_TRAINING_COSTS[5] =
+{
+    300,
+    600,
+    900,
+    1300,
+    1800
+};
+
+const int MOBILITY_COST = 1200;
+
+// ============================================================================
+// THERMAL MISSILE
+// ============================================================================
+
+const int THERMAL_MISSILE_COST = 1800;
+
+// Percentage of total HP removed from every enemy type.
+// 20% means the missile removes 20% of each enemy type's total HP.
+const int THERMAL_DAMAGE_PERCENT = 20;
+
+// ============================================================================
+// CONSOLE COLOURS
+// ============================================================================
+
+// Humans = Bright Green
 const WORD HUMAN_COLOR =
     FOREGROUND_GREEN | FOREGROUND_INTENSITY;
 
+// Bugs = Bright Red
 const WORD BUG_COLOR =
-    FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY;
+    FOREGROUND_RED | FOREGROUND_INTENSITY;
 
+// Robots = Bright Cyan
+const WORD ROBOT_COLOR =
+    FOREGROUND_BLUE |
+    FOREGROUND_GREEN |
+    FOREGROUND_INTENSITY;
+
+// Mutants = Bright Magenta
+const WORD MUTANT_COLOR =
+    FOREGROUND_RED |
+    FOREGROUND_BLUE |
+    FOREGROUND_INTENSITY;
+
+// Rebels = Bright Yellow
+const WORD REBEL_COLOR =
+    FOREGROUND_RED |
+    FOREGROUND_GREEN |
+    FOREGROUND_INTENSITY;
+
+// Normal console colour
 const WORD DEFAULT_COLOR =
-    FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+    FOREGROUND_RED |
+    FOREGROUND_GREEN |
+    FOREGROUND_BLUE;
 
 // ============================================================================
 // COLOUR FUNCTIONS
@@ -55,15 +183,25 @@ void setColor(WORD color)
 
 void setFactionColor(bool faction)
 {
-    if (faction)
+    if (faction == BUGS)
         setColor(BUG_COLOR);
     else
         setColor(HUMAN_COLOR);
 }
-
 void resetColor()
 {
     setColor(DEFAULT_COLOR);
+}
+void setScenarioColor(int scenario)
+{
+    if (scenario == SCENARIO_ROBOTS)
+        setColor(ROBOT_COLOR);
+    else if (scenario == SCENARIO_MUTANTS)
+        setColor(MUTANT_COLOR);
+    else if (scenario == SCENARIO_REBELS)
+        setColor(REBEL_COLOR);
+    else
+        resetColor();
 }
 
 // ============================================================================
@@ -91,7 +229,11 @@ int getIntInput()
     while (!(cin >> value))
     {
         cin.clear();
-        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+
+        cin.ignore(
+            numeric_limits<streamsize>::max(),
+            '\n'
+        );
 
         cout << "Invalid input. Enter a number: ";
     }
@@ -136,8 +278,8 @@ void printFacs()
 |      |Ll //Ll|\ \              |
 |      |__//   | \_\             |
 |     /---|[]==| / /             |
-|     \__/ |   \/\/              |
-|     /_   | Ll_\|               |
+|     \__/ |   \/\/             |
+|     /_   | Ll_\|              |
 |      |`^"""^`|                 |
 |      |   |   |                 |
 |      |   |   |                 |
@@ -170,11 +312,17 @@ void printFacs()
 // FACTION SCREEN
 // ============================================================================
 
-void factionScreen(bool faction, int cash, int wave)
+void factionScreen(
+    bool faction,
+    int cash,
+    int wave,
+    int scenario,
+    int attackTrainingTier,
+    int mobilityTier)
 {
-    setFactionColor(faction);
+    resetColor();
 
-    const string title = faction
+    string title = faction
         ? "BUG HIVE"
         : "HUMAN MILITARY BASE";
 
@@ -182,14 +330,24 @@ void factionScreen(bool faction, int cash, int wave)
 
     cout << "+============================================================================+\n";
     cout << "|                                                                            |\n";
-    cout << "|                     " << title;
+    cout << "|                     ";
 
-    int padding = 72 - static_cast<int>(title.length());
+    setFactionColor(faction);
+
+    cout << title;
+
+    resetColor();
+
+    int padding =
+        72 - static_cast<int>(title.length());
+
     cout << string(max(0, padding / 2), ' ');
 
     cout << "|\n";
     cout << "|                                                                            |\n";
     cout << "+----------------------------------------------------------------------------+\n";
+
+    setFactionColor(faction);
 
     if (!faction)
     {
@@ -214,12 +372,6 @@ void factionScreen(bool faction, int cash, int wave)
 |                    ||  ||      /        \\      ||  ||                    |
 |                    ||__||     /  COMMAND \\     ||__||                    |
 |                   /______\\  /____________\\  /______\\                   |
-|                                                                           |
-|              ___           ___              ___           ___             |
-|             |   |         |   |            |   |         |   |            |
-|             |___|=========|___|============|___|=========|___|            |
-|                \\             |      HQ      |             /              |
-|                 \\____________|______________|____________/               |
 |                                                                           |
 |                    [ HUMAN MILITARY COMMAND ]                             |
 +---------------------------------------------------------------------------+
@@ -268,6 +420,8 @@ void factionScreen(bool faction, int cash, int wave)
 )";
     }
 
+    resetColor();
+
     cout << R"(
 |                                                                            |
 |    +----------------+        +----------------+                            |
@@ -282,16 +436,57 @@ void factionScreen(bool faction, int cash, int wave)
 |    | Fight waves    |        | Build the Nuke |                            |
 |    +----------------+        +----------------+                            |
 |                                                                            |
+|    +----------------+                                                       |
+|    | [5] GIVE UP    |                                                       |
+|    |                |                                                       |
+|    | End campaign   |                                                       |
+|    +----------------+                                                       |
+|                                                                            |
 +============================================================================+
 |                              SELECT ACTION                                |
 +============================================================================+
 )";
 
-    cout << "|                         CASH: $" << left << setw(8) << cash
+    cout << "|                         CASH: $" << left << setw(8)
+         << cash
          << "                                  |\n";
 
-    cout << "|                         WAVE: " << left << setw(9) << wave
+    cout << "|                         WAVE: " << left << setw(9)
+         << wave
          << "                                  |\n";
+
+    cout << "|                         SCENARIO: ";
+
+    setScenarioColor(scenario);
+
+    cout << left
+         << setw(49)
+         << (
+            scenario == SCENARIO_STANDARD ? "STANDARD WAR" :
+            scenario == SCENARIO_ROBOTS ? "ROBOT UPRISING" :
+            scenario == SCENARIO_MUTANTS ? "MUTANT OUTBREAK" :
+            "REBEL WAR"
+         );
+
+    resetColor();
+
+    cout << "|\n";
+
+    cout << "|                         ATTACK BONUS: +"
+         << left
+         << setw(42)
+         << attackTrainingTier * 10
+         << "% |\n";
+
+    cout << "|                         MOBILITY: "
+         << left
+         << setw(48)
+         << (
+            mobilityTier
+            ? "+1 Speed for Tier 3/4 units"
+            : "Not researched"
+         )
+         << "|\n";
 
     cout << "+============================================================================+\n";
 
@@ -302,26 +497,335 @@ void factionScreen(bool faction, int cash, int wave)
 // GET BASE UNITS
 // ============================================================================
 
-void getBaseUnits(bool faction, Unit units[])
+void getBaseUnits(
+    bool faction,
+    Unit units[])
 {
     if (!faction)
     {
-        // HUMAN UNITS ONLY
-        units[0] = {"Soldier", 100, 100, 25, 15, 10};
-        units[1] = {"Heavy Soldier", 250, 220, 45, 35, 6};
-        units[2] = {"Tank", 500, 500, 80, 55, 5};
-        units[3] = {"Destroyer Tank", 900, 850, 130, 75, 3};
-        units[4] = {"Commander", 1800, 1100, 170, 90, 8};
+        units[0] =
+        {
+            "Soldier",
+            100,
+            100,
+            25,
+            15,
+            10
+        };
+
+        units[1] =
+        {
+            "Heavy Soldier",
+            250,
+            220,
+            45,
+            35,
+            6
+        };
+
+        units[2] =
+        {
+            "Tank",
+            500,
+            500,
+            80,
+            55,
+            5
+        };
+
+        units[3] =
+        {
+            "Destroyer Tank",
+            900,
+            850,
+            130,
+            75,
+            3
+        };
+
+        units[4] =
+        {
+            "Commander",
+            1800,
+            1100,
+            170,
+            90,
+            8
+        };
     }
     else
     {
-        // BUG UNITS ONLY
-        units[0] = {"Buggo", 60, 80, 20, 10, 12};
-        units[1] = {"Buggo Elite", 160, 170, 38, 25, 9};
-        units[2] = {"Hive Titan", 350, 400, 70, 45, 4};
-        units[3] = {"Hive King", 650, 700, 110, 60, 3};
-        units[4] = {"Hive Queen", 1800, 1200, 180, 100, 7};
+        units[0] =
+        {
+            "Buggo",
+            60,
+            80,
+            20,
+            10,
+            12
+        };
+
+        units[1] =
+        {
+            "Buggo Elite",
+            160,
+            170,
+            38,
+            25,
+            9
+        };
+
+        units[2] =
+        {
+            "Hive Titan",
+            350,
+            400,
+            70,
+            45,
+            4
+        };
+
+        units[3] =
+        {
+            "Hive King",
+            650,
+            700,
+            110,
+            60,
+            3
+        };
+
+        units[4] =
+        {
+            "Hive Queen",
+            1800,
+            1200,
+            180,
+            100,
+            7
+        };
     }
+}
+
+// ============================================================================
+// APPLY PLAYER UNIT UPGRADES
+// ============================================================================
+
+void applyUnitUpgrades(
+    Unit units[],
+    int attackTrainingTier,
+    int mobilityTier)
+{
+    double attackMultiplier =
+        1.0 + attackTrainingTier * 0.10;
+
+    for (int i = 0; i < MAX_UNITS; i++)
+    {
+        units[i].attack =
+            static_cast<int>(
+                units[i].attack *
+                attackMultiplier
+            );
+
+        // Tier 3, Tier 4 and ultimate units.
+        if (mobilityTier > 0 &&
+            i >= 2)
+        {
+            units[i].speed += 1;
+        }
+    }
+}
+
+// ============================================================================
+// SCENARIO DATA
+// ============================================================================
+
+void getScenario(
+    int scenario,
+    bool faction,
+    Scenario& data)
+{
+    for (int i = 0; i < MAX_UNITS; i++)
+        data.startingArmy[i] = 0;
+
+    data.name = "STANDARD WAR";
+    data.description =
+        "A conventional war between Humans and Bugs.";
+
+    data.startingCash = 1000;
+
+    data.bankTier = 0;
+    data.trainingTier = 0;
+    data.nuclearTier = 0;
+    data.weaponTier = 0;
+    data.attackTrainingTier = 0;
+    data.mobilityTier = 0;
+
+    // ========================================================================
+    // STANDARD
+    // ========================================================================
+
+    if (scenario == SCENARIO_STANDARD)
+    {
+        data.name =
+            "STANDARD WAR";
+
+        data.description =
+            "A conventional war between Humans and Bugs.";
+
+        data.startingCash = 1000;
+    }
+
+    // ========================================================================
+    // ROBOTS
+    // ========================================================================
+
+    else if (scenario == SCENARIO_ROBOTS)
+    {
+        data.name =
+            "ROBOT UPRISING";
+
+        data.description =
+            "Autonomous war machines have declared war on everyone.";
+
+        data.startingCash = 1800;
+
+        data.bankTier = 1;
+        data.trainingTier = 1;
+        data.weaponTier = 1;
+
+        data.startingArmy[0] = 3;
+        data.startingArmy[1] = 2;
+    }
+
+    // ========================================================================
+    // MUTANTS
+    // ========================================================================
+
+    else if (scenario == SCENARIO_MUTANTS)
+    {
+        data.name =
+            "MUTANT OUTBREAK";
+
+        data.description =
+            "A biological disaster has created a mutant army.";
+
+        data.startingCash = 1500;
+
+        data.trainingTier = 2;
+        data.nuclearTier = 1;
+        data.weaponTier = 1;
+
+        data.startingArmy[0] = 5;
+        data.startingArmy[1] = 1;
+    }
+
+    // ========================================================================
+    // REBELS
+    // ========================================================================
+
+    else if (scenario == SCENARIO_REBELS)
+    {
+        data.name =
+            faction
+            ? "BUG REBELLION"
+            : "HUMAN REBELLION";
+
+        data.description =
+            faction
+            ? "A rebel Bug faction has broken away from the Hive."
+            : "Human rebels have turned against the military.";
+
+        data.startingCash = 2200;
+
+        data.bankTier = 1;
+        data.weaponTier = 2;
+
+        data.startingArmy[0] = 4;
+        data.startingArmy[1] = 2;
+        data.startingArmy[2] = 1;
+    }
+}
+
+// ============================================================================
+// SCENARIO SELECTION
+// ============================================================================
+
+int chooseScenario(bool faction)
+{
+    clearScreen();
+
+    resetColor();
+
+    cout << "\n";
+    cout << "+============================================================================+\n";
+    cout << "|                           CHOOSE SCENARIO                                 |\n";
+    cout << "+============================================================================+\n\n";
+
+    setScenarioColor(SCENARIO_STANDARD);
+
+    cout << " [1] STANDARD WAR\n";
+
+    resetColor();
+
+    cout << "     Conventional Human vs Bug warfare.\n";
+    cout << "     Starting cash: $1000\n";
+    cout << "     No starting upgrades.\n\n";
+
+    setScenarioColor(SCENARIO_ROBOTS);
+
+    cout << " [2] ROBOT UPRISING\n";
+
+    resetColor();
+
+    cout << "     Autonomous robots attack everyone.\n";
+    cout << "     Starting cash: $1800\n";
+    cout << "     Bank Tier 1 + Training Tier 1\n";
+    cout << "     3 basic units + 2 heavy units\n\n";
+
+    setScenarioColor(SCENARIO_MUTANTS);
+
+    cout << " [3] MUTANT OUTBREAK\n";
+
+    resetColor();
+
+    cout << "     Mutants have overrun the battlefield.\n";
+    cout << "     Starting cash: $1500\n";
+    cout << "     Training Tier 2 + Nuclear Tier 1\n";
+    cout << "     5 basic units + 1 heavy unit\n\n";
+
+    setScenarioColor(SCENARIO_REBELS);
+
+    cout << " [4] ";
+
+    if (faction == HUMAN)
+        cout << "HUMAN REBELLION\n";
+    else
+        cout << "BUG REBELLION\n";
+
+    resetColor();
+
+    cout << "     A rebel faction has risen against you.\n";
+    cout << "     Starting cash: $2200\n";
+    cout << "     Bank Tier 1 + Weapon Tier 2\n";
+    cout << "     4 basic + 2 heavy + 1 vehicle\n\n";
+
+    cout << "+============================================================================+\n";
+
+    cout << "\nSelect scenario: ";
+
+    int choice =
+        getIntInput();
+
+    while (choice < 1 || choice > 4)
+    {
+        cout << "Please select a scenario from 1-4: ";
+
+        choice =
+            getIntInput();
+    }
+
+    return choice - 1;
 }
 
 // ============================================================================
@@ -332,11 +836,22 @@ void displayArmy(
     bool faction,
     int army[],
     int trainingTier,
-    int weaponTier)
+    int weaponTier,
+    int attackTrainingTier,
+    int mobilityTier)
 {
     Unit units[MAX_UNITS];
 
-    getBaseUnits(faction, units);
+    getBaseUnits(
+        faction,
+        units
+    );
+
+    applyUnitUpgrades(
+        units,
+        attackTrainingTier,
+        mobilityTier
+    );
 
     cout << "\n";
     cout << "+============================================================================+\n";
@@ -352,18 +867,35 @@ void displayArmy(
 
         hasUnits = true;
 
-        cout << "|  " << left << setw(20) << units[i].name;
+        cout << "|  "
+             << left
+             << setw(20)
+             << units[i].name;
 
         setFactionColor(faction);
 
-        cout << " x" << setw(6) << army[i];
+        cout << " x"
+             << setw(6)
+             << army[i];
 
         resetColor();
 
-        cout << " HP:" << setw(5) << units[i].health
-             << " ATK:" << setw(5) << units[i].attack
-             << " DEF:" << setw(5) << units[i].defense
-             << " SPD:" << setw(4) << units[i].speed
+        cout << " HP:"
+             << setw(5)
+             << units[i].health
+
+             << " ATK:"
+             << setw(5)
+             << units[i].attack
+
+             << " DEF:"
+             << setw(5)
+             << units[i].defense
+
+             << " SPD:"
+             << setw(4)
+             << units[i].speed
+
              << " |\n";
     }
 
@@ -390,44 +922,59 @@ void recruitScreen(
 {
     Unit units[MAX_UNITS];
 
-    getBaseUnits(faction, units);
+    getBaseUnits(
+        faction,
+        units
+    );
 
-    // Weapon tier directly determines how many unit types are unlocked.
-    int maxUnits = weaponTier + 1;
+    int maxUnits =
+        weaponTier + 1;
 
     if (maxUnits > MAX_UNITS)
         maxUnits = MAX_UNITS;
 
-    // ========================================================================
-    // TRAINING DISCOUNT
-    // ========================================================================
-
     for (int i = 0; i < MAX_UNITS; i++)
     {
         units[i].cost =
-            units[i].cost * (100 - trainingTier * 5) / 100;
+            units[i].cost *
+            (100 - trainingTier * 5) /
+            100;
     }
 
-    string title = faction
+    string title =
+        faction
         ? "BUG HIVE - RECRUITMENT"
         : "HUMAN MILITARY - RECRUITMENT";
 
     clearScreen();
 
-    setFactionColor(faction);
+    resetColor();
 
     cout << "\n";
 
     cout << "+============================================================================+\n";
     cout << "|                                                                            |\n";
-    cout << "|                      " << title;
+    cout << "|                      ";
 
-    int padding = 72 - static_cast<int>(title.length());
-    cout << string(max(0, padding / 2), ' ');
+    setFactionColor(faction);
+
+    cout << title;
+
+    resetColor();
+
+    int padding =
+        72 - static_cast<int>(title.length());
+
+    cout << string(
+        max(0, padding / 2),
+        ' '
+    );
 
     cout << "|\n";
     cout << "|                                                                            |\n";
     cout << "+----------------------------------------------------------------------------+\n";
+
+    setFactionColor(faction);
 
     if (!faction)
     {
@@ -471,52 +1018,114 @@ void recruitScreen(
 )";
     }
 
+    resetColor();
+
     cout << "+----------------------------------------------------------------------------+\n";
-    cout << "|                                                                            |\n";
-    cout << "|                         AVAILABLE CASH: $" << setw(8)
-         << left << cash;
-    cout << "                      |\n";
+    cout << "|                         AVAILABLE CASH: $"
+         << setw(8)
+         << left
+         << cash
+         << "                      |\n";
 
     cout << "|                         TRAINING DISCOUNT: "
-         << trainingTier * 5 << "%";
-    cout << "                           |\n";
+         << trainingTier * 5
+         << "%                           |\n";
 
-    cout << "|                                                                            |\n";
     cout << "+============================================================================+\n";
     cout << "|                            AVAILABLE UNITS                                |\n";
-    cout << "|                                                                            |\n";
+    cout << "+============================================================================+\n";
+
+    cout << "|  #   UNIT                OWNED      COST      HP    ATK   DEF   SPD       |\n";
+    cout << "|  ------------------------------------------------------------------------  |\n";
 
     for (int i = 0; i < MAX_UNITS; i++)
     {
-        cout << "|  [" << i + 1 << "] ";
+        cout << "|  ["
+             << i + 1
+             << "] ";
 
         if (i >= maxUnits)
         {
-            cout << left << setw(18) << "LOCKED"
-                 << "                                                     |\n";
+            cout << left
+                 << setw(20)
+                 << "LOCKED"
+
+                 << setw(10)
+                 << "-"
+
+                 << setw(10)
+                 << "-"
+
+                 << setw(6)
+                 << "-"
+
+                 << setw(6)
+                 << "-"
+
+                 << setw(6)
+                 << "-"
+
+                 << setw(8)
+                 << "-"
+
+                 << "|\n";
 
             continue;
         }
 
-        cout << left << setw(18) << units[i].name
-             << " $" << right << setw(5) << units[i].cost
-             << "   HP:" << setw(4) << units[i].health
-             << "   ATK:" << setw(4) << units[i].attack
-             << "   DEF:" << setw(4) << units[i].defense
-             << "   SPD:" << setw(3) << units[i].speed
-             << " |\n";
+        cout << left
+             << setw(20)
+             << units[i].name;
+
+        setFactionColor(faction);
+
+        cout << setw(10)
+             << army[i];
+
+        resetColor();
+
+        cout << "$"
+             << right
+             << setw(7)
+             << units[i].cost
+
+             << setw(7)
+             << units[i].health
+
+             << setw(6)
+             << units[i].attack
+
+             << setw(6)
+             << units[i].defense
+
+             << setw(6)
+             << units[i].speed
+
+             << "   |\n";
     }
 
     cout << "|                                                                            |\n";
     cout << "+----------------------------------------------------------------------------+\n";
+
+    int totalUnits = 0;
+
+    for (int i = 0; i < MAX_UNITS; i++)
+        totalUnits += army[i];
+
+    cout << "|  Total units in army: "
+         << left
+         << setw(51)
+         << totalUnits
+         << "|\n";
+
+    cout << "+----------------------------------------------------------------------------+\n";
     cout << "|  [0] RETURN                                                               |\n";
     cout << "+============================================================================+\n";
 
-    resetColor();
-
     cout << "\nSelect a unit to recruit: ";
 
-    int choice = getIntInput();
+    int choice =
+        getIntInput();
 
     if (choice == 0)
         return;
@@ -535,19 +1144,15 @@ void recruitScreen(
         cout << "|                 UNIT LOCKED                  |\n";
         cout << "+==============================================+\n";
 
+        cout << "| Upgrade Advanced Weaponry to unlock it.     |\n";
+
         if (choice == 5)
         {
-            cout << "| Upgrade Advanced Weaponry to Tier 4.        |\n";
-
             if (!faction)
                 cout << "| This unlocks your Commander.                 |\n";
             else
                 cout << "| This unlocks your Hive Queen.                |\n";
         }
-        else
-        {
-            cout << "| Upgrade Advanced Weaponry to unlock it.     |\n";
-        }
 
         cout << "+==============================================+\n";
 
@@ -555,31 +1160,35 @@ void recruitScreen(
         return;
     }
 
-    Unit selected = units[choice - 1];
+    Unit selected =
+        units[choice - 1];
 
-    // ========================================================================
-    // ONE-PER-ARMY LIMIT FOR COMMANDER / HIVE QUEEN
-    // ========================================================================
-
-    if (choice == 5 && army[4] >= 1)
+    if (choice == 5 &&
+        army[4] >= 1)
     {
         cout << "\n";
         cout << "+==============================================+\n";
         cout << "|              UNIT LIMIT REACHED             |\n";
         cout << "+==============================================+\n";
+
         cout << "| Your army can only have ONE "
-             << left << setw(17)
-             << selected.name << "|\n";
+             << left
+             << setw(17)
+             << selected.name
+             << "|\n";
+
         cout << "+==============================================+\n";
 
         pauseScreen();
         return;
     }
 
-    cout << "\nHow many " << selected.name
+    cout << "\nHow many "
+         << selected.name
          << "(s) do you want to recruit? ";
 
-    int quantity = getIntInput();
+    int quantity =
+        getIntInput();
 
     if (quantity <= 0)
     {
@@ -588,16 +1197,20 @@ void recruitScreen(
         return;
     }
 
-    // Commander / Hive Queen limited to one
-    if (choice == 5 && quantity > 1)
+    if (choice == 5 &&
+        quantity > 1)
     {
         cout << "\n";
         cout << "+==============================================+\n";
         cout << "|              ONE-PER-ARMY LIMIT             |\n";
         cout << "+==============================================+\n";
+
         cout << "| You can only recruit ONE "
-             << left << setw(17)
-             << selected.name << "|\n";
+             << left
+             << setw(17)
+             << selected.name
+             << "|\n";
+
         cout << "+==============================================+\n";
 
         pauseScreen();
@@ -605,7 +1218,9 @@ void recruitScreen(
     }
 
     long long totalCost =
-        static_cast<long long>(selected.cost) * quantity;
+        static_cast<long long>(
+            selected.cost
+        ) * quantity;
 
     if (totalCost > cash)
     {
@@ -613,16 +1228,33 @@ void recruitScreen(
         cout << "+==============================================+\n";
         cout << "|              INSUFFICIENT FUNDS             |\n";
         cout << "+==============================================+\n";
-        cout << "| Unit:       " << left << setw(31)
-             << selected.name << "|\n";
-        cout << "| Quantity:   " << setw(31)
-             << quantity << "|\n";
-        cout << "| Unit cost:  $" << setw(30)
-             << selected.cost << "|\n";
-        cout << "| Total cost: $" << setw(30)
-             << totalCost << "|\n";
-        cout << "| Your cash:  $" << setw(30)
-             << cash << "|\n";
+
+        cout << "| Unit:       "
+             << left
+             << setw(31)
+             << selected.name
+             << "|\n";
+
+        cout << "| Quantity:   "
+             << setw(31)
+             << quantity
+             << "|\n";
+
+        cout << "| Unit cost:  $"
+             << setw(30)
+             << selected.cost
+             << "|\n";
+
+        cout << "| Total cost: $"
+             << setw(30)
+             << totalCost
+             << "|\n";
+
+        cout << "| Your cash:  $"
+             << setw(30)
+             << cash
+             << "|\n";
+
         cout << "+==============================================+\n";
 
         pauseScreen();
@@ -637,21 +1269,34 @@ void recruitScreen(
     cout << "+==============================================+\n";
     cout << "|               UNITS RECRUITED!              |\n";
     cout << "+==============================================+\n";
-    cout << "| Unit:       " << left << setw(31)
-         << selected.name << "|\n";
-    cout << "| Quantity:   " << setw(31)
-         << quantity << "|\n";
-    cout << "| Unit cost:  $" << setw(30)
-         << selected.cost << "|\n";
-    cout << "| Total cost: $" << setw(30)
-         << totalCost << "|\n";
-    cout << "| Remaining:  $" << setw(30)
-         << cash << "|\n";
-    cout << "+==============================================+\n";
 
-    cout << "\nYou now have "
+    cout << "| Unit:       "
+         << left
+         << setw(31)
+         << selected.name
+         << "|\n";
+
+    cout << "| Quantity:   "
+         << setw(31)
+         << quantity
+         << "|\n";
+
+    cout << "| Total cost: $"
+         << setw(30)
+         << totalCost
+         << "|\n";
+
+    cout << "| Remaining:  $"
+         << setw(30)
+         << cash
+         << "|\n";
+
+    cout << "| Army count: "
+         << setw(31)
          << army[choice - 1]
-         << " " << selected.name << "(s).\n";
+         << "|\n";
+
+    cout << "+==============================================+\n";
 
     pauseScreen();
 }
@@ -666,132 +1311,96 @@ void upgradeScreen(
     int& bankTier,
     int& trainingTier,
     int& nuclearTier,
-    int& weaponTier)
+    int& weaponTier,
+    int& attackTrainingTier,
+    int& mobilityTier)
 {
-    const int MAX_BANK = 5;
-    const int MAX_TRAINING = 5;
-    const int MAX_NUCLEAR = 3;
-    const int MAX_WEAPON = 4;
-
-    int bankCosts[5] =
-    {
-        250,
-        500,
-        750,
-        1000,
-        1500
-    };
-
-    int trainingCosts[5] =
-    {
-        200,
-        400,
-        600,
-        850,
-        1200
-    };
-
-    int nuclearCosts[3] =
-    {
-        500,
-        1000,
-        2000
-    };
-
-    int weaponCosts[4] =
-    {
-        300,
-        750,
-        1500,
-        2500
-    };
-
     while (true)
     {
         clearScreen();
 
         setFactionColor(faction);
 
-        string title = faction
+        string title =
+            faction
             ? "BUG HIVE - UPGRADES"
             : "HUMAN MILITARY - UPGRADES";
 
         cout << "\n";
 
         cout << "+============================================================================+\n";
-        cout << "|                                                                            |\n";
-        cout << "|                      " << title;
-
-        int padding = 72 - static_cast<int>(title.length());
-        cout << string(max(0, padding / 2), ' ');
-
-        cout << "|\n";
-        cout << "|                                                                            |\n";
+        cout << "|                         " << title
+             << " |\n";
         cout << "+============================================================================+\n";
 
         cout << "|                                                                            |\n";
-        cout << "|                         AVAILABLE CASH: $" << setw(8)
-             << left << cash;
-        cout << "                      |\n";
-        cout << "|                                                                            |\n";
+        cout << "|                         AVAILABLE CASH: $"
+             << setw(8)
+             << left
+             << cash
+             << "                      |\n";
+
         cout << "+----------------------------------------------------------------------------+\n";
 
+        // ====================================================================
         // BANK
-        cout << "|                                                                            |\n";
+        // ====================================================================
+
         cout << "|  [1] BANK                                                                 |\n";
-        cout << "|                                                                            |\n";
-        cout << "|      Tier: " << bankTier << "/" << MAX_BANK
-             << "                                                             |\n";
+        cout << "|      Tier: "
+             << bankTier
+             << "/5                                                             |\n";
 
         cout << "|      Effect: ";
 
         if (bankTier == 0)
-            cout << "No bonus to attack income";
+            cout << "No bonus to wave income";
         else
-            cout << "+" << bankTier * 100
-                 << " cash after each successful wave";
+            cout << "+"
+                 << bankTier * 100
+                 << " cash after successful waves";
 
         cout << "\n";
 
         if (bankTier < MAX_BANK)
-            cout << "|      Next upgrade cost: $" << bankCosts[bankTier];
+            cout << "|      Next upgrade cost: $"
+                 << BANK_COSTS[bankTier]
+                 << "\n";
         else
-            cout << "|      MAXIMUM TIER REACHED";
+            cout << "|      MAXIMUM TIER REACHED\n";
 
-        cout << "\n";
-
+        // ====================================================================
         // TRAINING
-        cout << "|                                                                            |\n";
+        // ====================================================================
+
+        cout << "|\n";
         cout << "|  [2] BETTER TRAINING EQUIPMENT                                            |\n";
-        cout << "|                                                                            |\n";
-        cout << "|      Tier: " << trainingTier << "/" << MAX_TRAINING
-             << "                                                             |\n";
+        cout << "|      Tier: "
+             << trainingTier
+             << "/5                                                             |\n";
 
-        cout << "|      Effect: ";
-
-        if (trainingTier == 0)
-            cout << "Normal recruitment prices";
-        else
-            cout << trainingTier * 5 << "% cheaper recruitment";
-
-        cout << "\n";
+        cout << "|      Effect: "
+             << trainingTier * 5
+             << "% cheaper recruitment\n";
 
         if (trainingTier < MAX_TRAINING)
             cout << "|      Next upgrade cost: $"
-                 << trainingCosts[trainingTier];
+                 << TRAINING_COSTS[trainingTier]
+                 << "\n";
         else
-            cout << "|      MAXIMUM TIER REACHED";
+            cout << "|      MAXIMUM TIER REACHED\n";
 
-        cout << "\n";
-
+        // ====================================================================
         // NUCLEAR
-        cout << "|                                                                            |\n";
-        cout << "|  [3] NUCLEAR OPTION RESEARCH                                               |\n";
-        cout << "|                                                                            |\n";
-        cout << "|      Tier: " << nuclearTier << "/" << MAX_NUCLEAR
-             << "                                                             |\n";
+        // ====================================================================
 
-        cout << "|      Research status: ";
+        cout << "|\n";
+        cout << "|  [3] NUCLEAR OPTION RESEARCH                                              |\n";
+        cout << "|      Tier: "
+             << nuclearTier
+             << "/3                                                             |\n";
+
+        cout << "|      Status: ";
 
         if (nuclearTier == 0)
             cout << "Not started";
@@ -806,18 +1415,20 @@ void upgradeScreen(
 
         if (nuclearTier < MAX_NUCLEAR)
             cout << "|      Next upgrade cost: $"
-                 << nuclearCosts[nuclearTier];
+                 << NUCLEAR_COSTS[nuclearTier]
+                 << "\n";
         else
-            cout << "|      NUCLEAR RESEARCH COMPLETE";
+            cout << "|      NUCLEAR RESEARCH COMPLETE\n";
 
-        cout << "\n";
-
+        // ====================================================================
         // WEAPONRY
-        cout << "|                                                                            |\n";
-        cout << "|  [4] ADVANCED WEAPONRY                                                     |\n";
-        cout << "|                                                                            |\n";
-        cout << "|      Tier: " << weaponTier << "/" << MAX_WEAPON
-             << "                                                             |\n";
+        // ====================================================================
+
+        cout << "|\n";
+        cout << "|  [4] ADVANCED WEAPONRY                                                    |\n";
+        cout << "|      Tier: "
+             << weaponTier
+             << "/4                                                             |\n";
 
         cout << "|      Unlocked units: ";
 
@@ -836,13 +1447,56 @@ void upgradeScreen(
 
         if (weaponTier < MAX_WEAPON)
             cout << "|      Next upgrade cost: $"
-                 << weaponCosts[weaponTier];
+                 << WEAPON_COSTS[weaponTier]
+                 << "\n";
         else
-            cout << "|      ALL ADVANCED UNITS UNLOCKED";
+            cout << "|      ALL ADVANCED UNITS UNLOCKED\n";
 
-        cout << "\n";
+        // ====================================================================
+        // ATTACK TRAINING
+        // ====================================================================
 
-        cout << "|                                                                            |\n";
+        cout << "|\n";
+        cout << "|  [5] ATTACK TRAINING                                                      |\n";
+        cout << "|      Tier: "
+             << attackTrainingTier
+             << "/5                                                             |\n";
+
+        cout << "|      Effect: +"
+             << attackTrainingTier * 10
+             << "% attack                                                        |\n";
+
+        if (attackTrainingTier < MAX_ATTACK_TRAINING)
+        {
+            cout << "|      Next upgrade cost: $"
+                 << ATTACK_TRAINING_COSTS[attackTrainingTier]
+                 << "\n";
+        }
+        else
+        {
+            cout << "|      MAXIMUM +50% ATTACK REACHED\n";
+        }
+
+        // ====================================================================
+        // MOBILITY
+        // ====================================================================
+
+        cout << "|\n";
+        cout << "|  [6] ADVANCED MOBILITY                                                    |\n";
+        cout << "|      Tier: "
+             << mobilityTier
+             << "/1                                                             |\n";
+
+        cout << "|      Effect: +1 speed to Tier 3 and Tier 4 units                         |\n";
+
+        if (mobilityTier == 0)
+            cout << "|      Upgrade cost: $"
+                 << MOBILITY_COST
+                 << "\n";
+        else
+            cout << "|      MAXIMUM TIER REACHED\n";
+
+        cout << "|\n";
         cout << "+============================================================================+\n";
         cout << "|  [0] RETURN                                                               |\n";
         cout << "+============================================================================+\n";
@@ -851,19 +1505,23 @@ void upgradeScreen(
 
         cout << "\nSelect an upgrade: ";
 
-        int choice = getIntInput();
+        int choice =
+            getIntInput();
 
         if (choice == 0)
             return;
 
-        if (choice < 1 || choice > 4)
+        if (choice < 1 || choice > 6)
         {
             cout << "\nInvalid selection!\n";
             pauseScreen();
             continue;
         }
 
+        // ====================================================================
         // BANK
+        // ====================================================================
+
         if (choice == 1)
         {
             if (bankTier >= MAX_BANK)
@@ -873,7 +1531,8 @@ void upgradeScreen(
                 continue;
             }
 
-            int cost = bankCosts[bankTier];
+            int cost =
+                BANK_COSTS[bankTier];
 
             if (cash < cost)
             {
@@ -886,15 +1545,16 @@ void upgradeScreen(
             bankTier++;
 
             cout << "\nBank upgraded to Tier "
-                 << bankTier << "!\n";
-
-            cout << "Successful wave reward bonus: +"
-                 << bankTier * 100 << ".\n";
+                 << bankTier
+                 << "!\n";
 
             pauseScreen();
         }
 
+        // ====================================================================
         // TRAINING
+        // ====================================================================
+
         else if (choice == 2)
         {
             if (trainingTier >= MAX_TRAINING)
@@ -904,7 +1564,8 @@ void upgradeScreen(
                 continue;
             }
 
-            int cost = trainingCosts[trainingTier];
+            int cost =
+                TRAINING_COSTS[trainingTier];
 
             if (cash < cost)
             {
@@ -917,7 +1578,8 @@ void upgradeScreen(
             trainingTier++;
 
             cout << "\nTraining equipment upgraded to Tier "
-                 << trainingTier << "!\n";
+                 << trainingTier
+                 << "!\n";
 
             cout << "Recruitment is now "
                  << trainingTier * 5
@@ -926,19 +1588,21 @@ void upgradeScreen(
             pauseScreen();
         }
 
-        // NUCLEAR RESEARCH
+        // ====================================================================
+        // NUCLEAR
+        // ====================================================================
+
         else if (choice == 3)
         {
             if (nuclearTier >= MAX_NUCLEAR)
             {
                 cout << "\nNuclear research is already complete!\n";
-                cout << "Go to SABOTAGE to purchase the final weapon parts.\n";
-
                 pauseScreen();
                 continue;
             }
 
-            int cost = nuclearCosts[nuclearTier];
+            int cost =
+                NUCLEAR_COSTS[nuclearTier];
 
             if (cash < cost)
             {
@@ -950,34 +1614,20 @@ void upgradeScreen(
             cash -= cost;
             nuclearTier++;
 
-            cout << "\n";
-            cout << "+==============================================+\n";
-            cout << "|          NUCLEAR RESEARCH ADVANCED          |\n";
-            cout << "+==============================================+\n";
-            cout << "| Nuclear tier: "
-                 << nuclearTier << "/3                         |\n";
-            cout << "+==============================================+\n";
+            cout << "\nNuclear research advanced to Tier "
+                 << nuclearTier
+                 << "/3.\n";
 
-            if (nuclearTier == 1)
-            {
-                cout << "| Warhead research completed.                 |\n";
-            }
-            else if (nuclearTier == 2)
-            {
-                cout << "| Nuclear delivery system completed.          |\n";
-            }
-            else
-            {
-                cout << "| ALL NUCLEAR RESEARCH COMPLETE!              |\n";
-                cout << "| Visit SABOTAGE to buy the final parts.      |\n";
-            }
-
-            cout << "+==============================================+\n";
+            if (nuclearTier == 3)
+                cout << "Visit SABOTAGE to purchase the final components.\n";
 
             pauseScreen();
         }
 
-        // ADVANCED WEAPONRY
+        // ====================================================================
+        // WEAPONRY
+        // ====================================================================
+
         else if (choice == 4)
         {
             if (weaponTier >= MAX_WEAPON)
@@ -987,7 +1637,8 @@ void upgradeScreen(
                 continue;
             }
 
-            int cost = weaponCosts[weaponTier];
+            int cost =
+                WEAPON_COSTS[weaponTier];
 
             if (cash < cost)
             {
@@ -999,39 +1650,99 @@ void upgradeScreen(
             cash -= cost;
             weaponTier++;
 
-            cout << "\n";
-            cout << "+==============================================+\n";
-            cout << "|          ADVANCED WEAPONRY UPGRADED         |\n";
-            cout << "+==============================================+\n";
-            cout << "| Tier: " << weaponTier << "/4                                      |\n";
-            cout << "+==============================================+\n";
+            cout << "\nAdvanced Weaponry upgraded to Tier "
+                 << weaponTier
+                 << "/4!\n";
 
             if (weaponTier == 1)
-            {
-                cout << "| Heavy infantry unlocked!                    |\n";
-            }
+                cout << "Heavy infantry unlocked!\n";
             else if (weaponTier == 2)
-            {
-                cout << "| Heavy vehicles unlocked!                    |\n";
-            }
+                cout << "Heavy vehicles unlocked!\n";
             else if (weaponTier == 3)
-            {
-                cout << "| Ultimate vehicles unlocked!                 |\n";
-            }
-            else
+                cout << "Advanced vehicles unlocked!\n";
+            else if (weaponTier == 4)
             {
                 if (!faction)
-                {
-                    cout << "| COMMANDER UNLOCKED!                         |\n";
-                    cout << "| ONLY ONE COMMANDER MAY EXIST.               |\n";
-                }
+                    cout << "COMMANDER UNLOCKED!\n";
                 else
-                {
-                    cout << "| HIVE QUEEN UNLOCKED!                        |\n";
-                    cout << "| ONLY ONE HIVE QUEEN MAY EXIST.              |\n";
-                }
+                    cout << "HIVE QUEEN UNLOCKED!\n";
             }
 
+            pauseScreen();
+        }
+
+        // ====================================================================
+        // ATTACK TRAINING
+        // ====================================================================
+
+        else if (choice == 5)
+        {
+            if (attackTrainingTier >= MAX_ATTACK_TRAINING)
+            {
+                cout << "\nAttack Training is fully upgraded!\n";
+                pauseScreen();
+                continue;
+            }
+
+            int cost =
+                ATTACK_TRAINING_COSTS[attackTrainingTier];
+
+            if (cash < cost)
+            {
+                cout << "\nNot enough cash!\n";
+                pauseScreen();
+                continue;
+            }
+
+            cash -= cost;
+            attackTrainingTier++;
+
+            cout << "\n";
+            cout << "+==============================================+\n";
+            cout << "|          ATTACK TRAINING UPGRADED            |\n";
+            cout << "+==============================================+\n";
+
+            cout << "| Tier: "
+                 << attackTrainingTier
+                 << "/5                                      |\n";
+
+            cout << "| Attack bonus: +"
+                 << attackTrainingTier * 10
+                 << "%                                    |\n";
+
+            cout << "+==============================================+\n";
+
+            pauseScreen();
+        }
+
+        // ====================================================================
+        // MOBILITY
+        // ====================================================================
+
+        else if (choice == 6)
+        {
+            if (mobilityTier >= MAX_MOBILITY)
+            {
+                cout << "\nAdvanced Mobility is fully upgraded!\n";
+                pauseScreen();
+                continue;
+            }
+
+            if (cash < MOBILITY_COST)
+            {
+                cout << "\nNot enough cash!\n";
+                pauseScreen();
+                continue;
+            }
+
+            cash -= MOBILITY_COST;
+            mobilityTier++;
+
+            cout << "\n";
+            cout << "+==============================================+\n";
+            cout << "|            ADVANCED MOBILITY                |\n";
+            cout << "+==============================================+\n";
+            cout << "| Tier 3 and Tier 4 units gain +1 speed.     |\n";
             cout << "+==============================================+\n";
 
             pauseScreen();
@@ -1040,28 +1751,353 @@ void upgradeScreen(
 }
 
 // ============================================================================
-// ENEMY UNIT GENERATION
+// ENEMY UNITS
 // ============================================================================
 
-void getEnemyUnits(bool faction, Unit enemyUnits[])
+void getEnemyUnits(
+    bool faction,
+    int scenario,
+    Unit enemyUnits[])
 {
+    // ========================================================================
+    // ROBOTS
+    // ========================================================================
+
+    if (scenario == SCENARIO_ROBOTS)
+    {
+        enemyUnits[0] =
+        {
+            "Scout Robot",
+            80,
+            100,
+            30,
+            20,
+            14
+        };
+
+        enemyUnits[1] =
+        {
+            "Combat Robot",
+            200,
+            240,
+            50,
+            40,
+            9
+        };
+
+        enemyUnits[2] =
+        {
+            "Robot Tank",
+            450,
+            550,
+            85,
+            65,
+            6
+        };
+
+        enemyUnits[3] =
+        {
+            "Destroyer Robot",
+            850,
+            900,
+            140,
+            85,
+            5
+        };
+
+        enemyUnits[4] =
+        {
+            "ROBOT OVERLORD",
+            2200,
+            1400,
+            210,
+            120,
+            8
+        };
+
+        return;
+    }
+
+    // ========================================================================
+    // MUTANTS
+    // ========================================================================
+
+    if (scenario == SCENARIO_MUTANTS)
+    {
+        enemyUnits[0] =
+        {
+            "Mutant",
+            70,
+            120,
+            28,
+            8,
+            10
+        };
+
+        enemyUnits[1] =
+        {
+            "Mutant Brute",
+            180,
+            300,
+            50,
+            25,
+            6
+        };
+
+        enemyUnits[2] =
+        {
+            "Mutant Beast",
+            400,
+            600,
+            90,
+            35,
+            7
+        };
+
+        enemyUnits[3] =
+        {
+            "Mutant Abomination",
+            800,
+            950,
+            135,
+            55,
+            4
+        };
+
+        enemyUnits[4] =
+        {
+            "MUTANT ALPHA",
+            2000,
+            1500,
+            220,
+            80,
+            6
+        };
+
+        return;
+    }
+
+    // ========================================================================
+    // REBELS
+    // ========================================================================
+
+    if (scenario == SCENARIO_REBELS)
+    {
+        if (!faction)
+        {
+            enemyUnits[0] =
+            {
+                "Rebel Soldier",
+                90,
+                110,
+                28,
+                13,
+                11
+            };
+
+            enemyUnits[1] =
+            {
+                "Rebel Heavy",
+                230,
+                230,
+                48,
+                30,
+                7
+            };
+
+            enemyUnits[2] =
+            {
+                "Rebel Tank",
+                450,
+                520,
+                82,
+                50,
+                5
+            };
+
+            enemyUnits[3] =
+            {
+                "Rebel Destroyer",
+                850,
+                850,
+                125,
+                70,
+                4
+            };
+
+            enemyUnits[4] =
+            {
+                "REBEL COMMANDER",
+                1900,
+                1200,
+                190,
+                95,
+                8
+            };
+        }
+        else
+        {
+            enemyUnits[0] =
+            {
+                "Rebel Buggo",
+                65,
+                90,
+                23,
+                9,
+                13
+            };
+
+            enemyUnits[1] =
+            {
+                "Rebel Elite Bug",
+                170,
+                180,
+                40,
+                23,
+                10
+            };
+
+            enemyUnits[2] =
+            {
+                "Rebel Hive Beast",
+                380,
+                430,
+                75,
+                40,
+                5
+            };
+
+            enemyUnits[3] =
+            {
+                "Rebel Hive King",
+                700,
+                750,
+                115,
+                55,
+                4
+            };
+
+            enemyUnits[4] =
+            {
+                "REBEL QUEEN",
+                1900,
+                1250,
+                190,
+                95,
+                7
+            };
+        }
+
+        return;
+    }
+
+    // ========================================================================
+    // STANDARD HUMAN VS BUG
+    // ========================================================================
+
     if (!faction)
     {
-        // Player is HUMAN, so enemies are BUGS.
-        enemyUnits[0] = {"Buggo", 60, 80, 20, 10, 12};
-        enemyUnits[1] = {"Buggo Elite", 160, 170, 38, 25, 9};
-        enemyUnits[2] = {"Hive Titan", 350, 400, 70, 45, 4};
-        enemyUnits[3] = {"Hive King", 650, 700, 110, 60, 3};
-        enemyUnits[4] = {"Hive Queen", 1800, 1200, 180, 100, 7};
+        enemyUnits[0] =
+        {
+            "Buggo",
+            60,
+            80,
+            20,
+            10,
+            12
+        };
+
+        enemyUnits[1] =
+        {
+            "Buggo Elite",
+            160,
+            170,
+            38,
+            25,
+            9
+        };
+
+        enemyUnits[2] =
+        {
+            "Hive Titan",
+            350,
+            400,
+            70,
+            45,
+            4
+        };
+
+        enemyUnits[3] =
+        {
+            "Hive King",
+            650,
+            700,
+            110,
+            60,
+            3
+        };
+
+        enemyUnits[4] =
+        {
+            "Hive Queen",
+            1800,
+            1200,
+            180,
+            100,
+            7
+        };
     }
     else
     {
-        // Player is BUGS, so enemies are HUMANS.
-        enemyUnits[0] = {"Soldier", 100, 100, 25, 15, 10};
-        enemyUnits[1] = {"Heavy Soldier", 250, 220, 45, 35, 6};
-        enemyUnits[2] = {"Tank", 500, 500, 80, 55, 5};
-        enemyUnits[3] = {"Destroyer Tank", 900, 850, 130, 75, 3};
-        enemyUnits[4] = {"Commander", 1800, 1100, 170, 90, 8};
+        enemyUnits[0] =
+        {
+            "Soldier",
+            100,
+            100,
+            25,
+            15,
+            10
+        };
+
+        enemyUnits[1] =
+        {
+            "Heavy Soldier",
+            250,
+            220,
+            45,
+            35,
+            6
+        };
+
+        enemyUnits[2] =
+        {
+            "Tank",
+            500,
+            500,
+            80,
+            55,
+            5
+        };
+
+        enemyUnits[3] =
+        {
+            "Destroyer Tank",
+            900,
+            850,
+            130,
+            75,
+            3
+        };
+
+        enemyUnits[4] =
+        {
+            "Commander",
+            1800,
+            1100,
+            170,
+            90,
+            8
+        };
     }
 }
 
@@ -1071,36 +2107,124 @@ void getEnemyUnits(bool faction, Unit enemyUnits[])
 
 void createEnemyWave(
     bool faction,
+    int scenario,
     int wave,
     int enemyArmy[])
 {
-    Unit enemyUnits[MAX_UNITS];
-
-    getEnemyUnits(faction, enemyUnits);
-
     for (int i = 0; i < MAX_UNITS; i++)
         enemyArmy[i] = 0;
 
-    // BASIC ENEMIES
-    enemyArmy[0] = 4 + wave;
+    // ========================================================================
+    // STANDARD
+    // ========================================================================
 
-    // HEAVY ENEMIES
+    enemyArmy[0] =
+        4 + wave;
+
     if (wave >= 3)
-        enemyArmy[1] = 1 + (wave - 3) / 2;
+        enemyArmy[1] =
+            1 + (wave - 3) / 2;
 
-    // TANK / TITAN
     if (wave >= 6)
-        enemyArmy[2] = 1 + (wave - 6) / 3;
+        enemyArmy[2] =
+            1 + (wave - 6) / 3;
 
-    // ULTIMATE STANDARD UNIT
     if (wave >= 10)
-        enemyArmy[3] = 1 + (wave - 10) / 4;
+        enemyArmy[3] =
+            1 + (wave - 10) / 4;
 
-    // FACTION-SPECIFIC ULTIMATE
-    // Humans fight the Hive Queen.
-    // Bugs fight the Commander.
     if (wave >= 15)
         enemyArmy[4] = 1;
+
+    // ========================================================================
+    // ROBOT UPRISING
+    // ========================================================================
+
+    if (scenario == SCENARIO_ROBOTS)
+    {
+        enemyArmy[0] += 2;
+
+        if (wave >= 4)
+            enemyArmy[1]++;
+
+        if (wave >= 8)
+            enemyArmy[2]++;
+
+        if (wave >= 12)
+            enemyArmy[3]++;
+
+        if (wave >= 18)
+            enemyArmy[4]++;
+    }
+
+    // ========================================================================
+    // MUTANT OUTBREAK
+    // ========================================================================
+
+    else if (scenario == SCENARIO_MUTANTS)
+    {
+        enemyArmy[0] =
+            3 + wave / 2;
+
+        if (wave >= 3)
+            enemyArmy[1] += 2;
+
+        if (wave >= 6)
+            enemyArmy[2]++;
+
+        if (wave >= 9)
+            enemyArmy[3]++;
+
+        if (wave >= 13)
+            enemyArmy[4] = 1;
+    }
+
+    // ========================================================================
+    // REBELLION
+    // ========================================================================
+
+    else if (scenario == SCENARIO_REBELS)
+    {
+        enemyArmy[0] += 1;
+
+        if (wave >= 2)
+            enemyArmy[1]++;
+
+        if (wave >= 5)
+            enemyArmy[2]++;
+
+        if (wave >= 9)
+            enemyArmy[3]++;
+
+        if (wave >= 14)
+            enemyArmy[4] = 1;
+    }
+}
+
+// ============================================================================
+// CREATE ENEMY HEALTH
+// ============================================================================
+
+void createEnemyHealth(
+    bool faction,
+    int scenario,
+    int enemyArmy[],
+    int enemyHealth[])
+{
+    Unit enemyUnits[MAX_UNITS];
+
+    getEnemyUnits(
+        faction,
+        scenario,
+        enemyUnits
+    );
+
+    for (int i = 0; i < MAX_UNITS; i++)
+    {
+        enemyHealth[i] =
+            enemyArmy[i] *
+            enemyUnits[i].health;
+    }
 }
 
 // ============================================================================
@@ -1109,17 +2233,34 @@ void createEnemyWave(
 
 void displayEnemyWave(
     bool faction,
+    int scenario,
     int wave,
-    int enemyArmy[])
+    int enemyArmy[],
+    int enemyHealth[])
 {
     Unit enemyUnits[MAX_UNITS];
 
-    getEnemyUnits(faction, enemyUnits);
+    getEnemyUnits(
+        faction,
+        scenario,
+        enemyUnits
+    );
 
     cout << "\n";
     cout << "+============================================================================+\n";
-    cout << "|                         ENEMY WAVE " << left << setw(4)
-         << wave << "                                |\n";
+
+    setScenarioColor(scenario);
+
+    cout << "|                         ENEMY WAVE "
+         << left
+         << setw(4)
+         << wave
+         << "                                ";
+
+    resetColor();
+
+    cout << "|\n";
+
     cout << "+============================================================================+\n";
 
     for (int i = 0; i < MAX_UNITS; i++)
@@ -1127,12 +2268,35 @@ void displayEnemyWave(
         if (enemyArmy[i] <= 0)
             continue;
 
-        cout << "|  " << left << setw(20) << enemyUnits[i].name
-             << " x" << setw(6) << enemyArmy[i]
-             << " HP:" << setw(5) << enemyUnits[i].health
-             << " ATK:" << setw(5) << enemyUnits[i].attack
-             << " DEF:" << setw(5) << enemyUnits[i].defense
-             << " SPD:" << setw(4) << enemyUnits[i].speed
+        cout << "|  "
+             << left
+             << setw(22)
+             << enemyUnits[i].name;
+
+        setScenarioColor(scenario);
+
+        cout << " x"
+             << setw(5)
+             << enemyArmy[i];
+
+        resetColor();
+
+        cout << " HP:"
+             << setw(7)
+             << enemyHealth[i]
+
+             << " ATK:"
+             << setw(5)
+             << enemyUnits[i].attack
+
+             << " DEF:"
+             << setw(5)
+             << enemyUnits[i].defense
+
+             << " SPD:"
+             << setw(4)
+             << enemyUnits[i].speed
+
              << " |\n";
     }
 
@@ -1140,16 +2304,27 @@ void displayEnemyWave(
 }
 
 // ============================================================================
-// CALCULATE TOTAL ARMY POWER
+// CALCULATE PLAYER ARMY POWER
 // ============================================================================
 
 long long calculateArmyPower(
     bool faction,
-    int army[])
+    int army[],
+    int attackTrainingTier,
+    int mobilityTier)
 {
     Unit units[MAX_UNITS];
 
-    getBaseUnits(faction, units);
+    getBaseUnits(
+        faction,
+        units
+    );
+
+    applyUnitUpgrades(
+        units,
+        attackTrainingTier,
+        mobilityTier
+    );
 
     long long power = 0;
 
@@ -1159,12 +2334,20 @@ long long calculateArmyPower(
             continue;
 
         long long unitPower =
-            static_cast<long long>(units[i].attack) * 3 +
-            static_cast<long long>(units[i].defense) * 2 +
-            units[i].health +
-            units[i].speed * 5;
+            static_cast<long long>(
+                units[i].attack
+            ) * 3
 
-        power += unitPower * army[i];
+            + static_cast<long long>(
+                units[i].defense
+            ) * 2
+
+            + units[i].health
+
+            + units[i].speed * 5;
+
+        power +=
+            unitPower * army[i];
     }
 
     return power;
@@ -1176,11 +2359,17 @@ long long calculateArmyPower(
 
 long long calculateEnemyPower(
     bool faction,
-    int enemyArmy[])
+    int scenario,
+    int enemyArmy[],
+    int enemyHealth[])
 {
     Unit units[MAX_UNITS];
 
-    getEnemyUnits(faction, units);
+    getEnemyUnits(
+        faction,
+        scenario,
+        units
+    );
 
     long long power = 0;
 
@@ -1189,13 +2378,51 @@ long long calculateEnemyPower(
         if (enemyArmy[i] <= 0)
             continue;
 
-        long long unitPower =
-            static_cast<long long>(units[i].attack) * 3 +
-            static_cast<long long>(units[i].defense) * 2 +
-            units[i].health +
-            units[i].speed * 5;
+        long long fullHealth =
+            static_cast<long long>(
+                enemyArmy[i]
+            ) *
+            units[i].health;
 
-        power += unitPower * enemyArmy[i];
+        double healthRatio =
+            1.0;
+
+        if (fullHealth > 0)
+        {
+            healthRatio =
+                static_cast<double>(
+                    enemyHealth[i]
+                ) /
+                static_cast<double>(
+                    fullHealth
+                );
+        }
+
+        if (healthRatio < 0)
+            healthRatio = 0;
+
+        long long unitPower =
+            static_cast<long long>(
+                units[i].attack
+            ) * 3
+
+            + static_cast<long long>(
+                units[i].defense
+            ) * 2
+
+            + units[i].health
+
+            + units[i].speed * 5;
+
+        unitPower =
+            static_cast<long long>(
+                unitPower *
+                healthRatio
+            );
+
+        power +=
+            unitPower *
+            enemyArmy[i];
     }
 
     return power;
@@ -1208,28 +2435,49 @@ long long calculateEnemyPower(
 void applyCombatLosses(
     bool faction,
     int army[],
-    int enemyArmy[])
+    int enemyArmy[],
+    int attackTrainingTier,
+    int mobilityTier,
+    int scenario,
+    int enemyHealth[])
 {
     Unit playerUnits[MAX_UNITS];
 
-    getBaseUnits(faction, playerUnits);
+    getBaseUnits(
+        faction,
+        playerUnits
+    );
 
     long long playerPower =
-        calculateArmyPower(faction, army);
+        calculateArmyPower(
+            faction,
+            army,
+            attackTrainingTier,
+            mobilityTier
+        );
 
     long long enemyPower =
-        calculateEnemyPower(faction, enemyArmy);
+        calculateEnemyPower(
+            faction,
+            scenario,
+            enemyArmy,
+            enemyHealth
+        );
 
     if (playerPower <= 0)
         return;
 
     double lossRatio =
         static_cast<double>(enemyPower) /
-        static_cast<double>(playerPower + enemyPower);
+        static_cast<double>(
+            playerPower + enemyPower
+        );
 
-    // Keep losses between 10% and 75%.
     lossRatio =
-        max(0.10, min(0.75, lossRatio));
+        max(
+            0.10,
+            min(0.75, lossRatio)
+        );
 
     for (int i = 0; i < MAX_UNITS; i++)
     {
@@ -1237,13 +2485,18 @@ void applyCombatLosses(
             continue;
 
         int losses =
-            static_cast<int>(army[i] * lossRatio);
+            static_cast<int>(
+                army[i] * lossRatio
+            );
 
-        if (losses == 0 && army[i] > 2)
+        if (losses == 0 &&
+            army[i] > 2)
+        {
             losses = 1;
+        }
 
-        // Commander / Hive Queen
-        if (i == 4 && army[i] == 1)
+        if (i == 4 &&
+            army[i] == 1)
         {
             if (lossRatio >= 0.65)
                 losses = 1;
@@ -1251,13 +2504,18 @@ void applyCombatLosses(
                 losses = 0;
         }
 
-        losses = min(losses, army[i]);
+        losses =
+            min(
+                losses,
+                army[i]
+            );
 
         army[i] -= losses;
 
         if (losses > 0)
         {
-            cout << losses << " "
+            cout << losses
+                 << " "
                  << playerUnits[i].name
                  << "(s) were lost.\n";
         }
@@ -1265,10 +2523,11 @@ void applyCombatLosses(
 }
 
 // ============================================================================
-// CHECK IF PLAYER HAS ANY UNITS
+// HAS ANY UNITS
 // ============================================================================
 
-bool hasAnyUnits(int army[])
+bool hasAnyUnits(
+    int army[])
 {
     for (int i = 0; i < MAX_UNITS; i++)
     {
@@ -1280,7 +2539,7 @@ bool hasAnyUnits(int army[])
 }
 
 // ============================================================================
-// CHECK IF PLAYER CAN AFFORD ANY CURRENTLY UNLOCKED UNIT
+// CAN AFFORD ANY UNIT
 // ============================================================================
 
 bool canAffordAnyUnit(
@@ -1292,9 +2551,13 @@ bool canAffordAnyUnit(
 {
     Unit units[MAX_UNITS];
 
-    getBaseUnits(faction, units);
+    getBaseUnits(
+        faction,
+        units
+    );
 
-    int maxUnits = weaponTier + 1;
+    int maxUnits =
+        weaponTier + 1;
 
     if (maxUnits > MAX_UNITS)
         maxUnits = MAX_UNITS;
@@ -1303,66 +2566,81 @@ bool canAffordAnyUnit(
     {
         int discountedCost =
             units[i].cost *
-            (100 - trainingTier * 5) / 100;
+            (100 - trainingTier * 5) /
+            100;
 
-        // Commander / Hive Queen
-        if (i == 4)
+        if (i == 4 &&
+            army[4] >= 1)
         {
-            if (army[4] >= 1)
-                continue;
+            continue;
+        }
 
-            if (cash >= discountedCost)
-                return true;
-        }
-        else
-        {
-            if (cash >= discountedCost)
-                return true;
-        }
+        if (cash >= discountedCost)
+            return true;
     }
 
     return false;
 }
 
 // ============================================================================
-// LOSE SCREEN
+// THERMAL MISSILE DAMAGE
 // ============================================================================
 
-void loseScreen(bool faction)
+void applyThermalMissileDamage(
+    bool faction,
+    int scenario,
+    int enemyArmy[],
+    int enemyHealth[])
 {
-    clearScreen();
+    Unit enemyUnits[MAX_UNITS];
 
-    setFactionColor(faction);
-
-    cout << "\n";
-    cout << "============================================================================\n";
-    cout << "                         DEFEAT, GAME OVER!\n";
-    cout << "============================================================================\n\n";
-
-    cout << "Your faction has been completely defeated.\n\n";
-
-    if (faction)
-    {
-        cout << "The Bug Hive has lost all of its forces.\n";
-        cout << "There are no resources remaining to spawn another army.\n";
-    }
-    else
-    {
-        cout << "The Human Military has lost all of its forces.\n";
-        cout << "There are no resources remaining to recruit another army.\n";
-    }
+    getEnemyUnits(
+        faction,
+        scenario,
+        enemyUnits
+    );
 
     cout << "\n";
-    cout << "The enemy controls the battlefield.\n";
-    cout << "Your campaign has come to an end.\n\n";
+    cout << "============================================================\n";
+    cout << "                 *** THERMAL IMPACT ***\n";
+    cout << "============================================================\n\n";
 
-    cout << "============================================================================\n";
-    cout << "                              YOU LOSE!\n";
-    cout << "============================================================================\n\n";
+    for (int i = 0; i < MAX_UNITS; i++)
+    {
+        if (enemyArmy[i] <= 0)
+            continue;
 
-    resetColor();
+        int oldHealth =
+            enemyHealth[i];
 
-    pauseScreen();
+        int damage =
+            static_cast<int>(
+                enemyHealth[i] *
+                (THERMAL_DAMAGE_PERCENT / 100.0)
+            );
+
+        if (damage < 1)
+            damage = 1;
+
+        enemyHealth[i] =
+            max(
+                0,
+                enemyHealth[i] - damage
+            );
+
+        cout << enemyUnits[i].name
+             << " lost "
+             << damage
+             << " HP";
+
+        cout << " ("
+             << oldHealth
+             << " -> "
+             << enemyHealth[i]
+             << ")\n";
+    }
+
+    cout << "\nThe thermal missile damaged EVERY enemy type in the wave.\n";
 }
 
 // ============================================================================
@@ -1371,102 +2649,228 @@ void loseScreen(bool faction)
 
 bool attackScreen(
     bool faction,
+    int scenario,
     int& cash,
     int bankTier,
     int& wave,
-    int army[])
+    int army[],
+    int attackTrainingTier,
+    int mobilityTier,
+    bool& thermalMissile)
 {
     clearScreen();
 
     setFactionColor(faction);
 
-    bool hasArmy = hasAnyUnits(army);
-
-    if (!hasArmy)
+    if (!hasAnyUnits(army))
     {
         cout << "+============================================================================+\n";
         cout << "|                              ATTACK                                       |\n";
         cout << "+============================================================================+\n";
         cout << "|                                                                            |\n";
         cout << "| You have no units!                                                        |\n";
-        cout << "| Recruit an army before attacking.                                        |\n";
+        cout << "| Recruit an army before attacking.                                         |\n";
         cout << "|                                                                            |\n";
         cout << "+============================================================================+\n";
 
         resetColor();
 
         pauseScreen();
+
         return false;
     }
 
-    // ========================================================================
-    // CREATE WAVE
-    // ========================================================================
-
     int enemyArmy[MAX_UNITS];
+    int enemyHealth[MAX_UNITS];
 
     createEnemyWave(
         faction,
+        scenario,
         wave,
         enemyArmy
     );
 
-    // ========================================================================
-    // DISPLAY
-    // ========================================================================
-
-    cout << "+============================================================================+\n";
-    cout << "|                              ATTACK                                       |\n";
-    cout << "+============================================================================+\n";
-    cout << "|                                                                            |\n";
-    cout << "|                         ENEMY TERRITORY                                   |\n";
-    cout << "|                                                                            |\n";
-    cout << "|                         WAVE " << left << setw(5)
-         << wave << "                                     |\n";
-    cout << "|                                                                            |\n";
-    cout << "+----------------------------------------------------------------------------+\n";
-
-    displayArmy(
+    createEnemyHealth(
         faction,
-        army,
-        0,
-        0
+        scenario,
+        enemyArmy,
+        enemyHealth
     );
 
-    displayEnemyWave(
-        faction,
-        wave,
-        enemyArmy
-    );
+    // ========================================================================
+    // ATTACK PREPARATION
+    // ========================================================================
 
-    long long playerPower =
-        calculateArmyPower(faction, army);
+    while (true)
+    {
+        clearScreen();
 
-    long long enemyPower =
-        calculateEnemyPower(faction, enemyArmy);
+        setFactionColor(faction);
 
-    cout << "\n";
-    cout << "+============================================================================+\n";
-    cout << "|                              BATTLE POWER                                 |\n";
-    cout << "+============================================================================+\n";
+        cout << "+============================================================================+\n";
+        cout << "|                              ATTACK                                       |\n";
+        cout << "+============================================================================+\n";
 
-    cout << "| Your army power:   ";
+        cout << "| Scenario: ";
 
-    setFactionColor(faction);
-    cout << left << setw(58) << playerPower;
-    resetColor();
+        setScenarioColor(scenario);
 
-    cout << "|\n";
+        cout << left
+             << setw(65)
+             << (
+                scenario == SCENARIO_STANDARD ? "STANDARD WAR" :
+                scenario == SCENARIO_ROBOTS ? "ROBOT UPRISING" :
+                scenario == SCENARIO_MUTANTS ? "MUTANT OUTBREAK" :
+                "REBEL WAR"
+             );
 
-    cout << "| Enemy wave power:  " << left << setw(58)
-         << enemyPower << "|\n";
+        resetColor();
 
-    cout << "+============================================================================+\n";
+        cout << "|\n";
 
-    cout << "\nPress ENTER to begin the battle...";
+        cout << "| Wave: "
+             << left
+             << setw(70)
+             << wave
+             << "|\n";
 
-    cin.ignore(numeric_limits<streamsize>::max(), '\n');
-    cin.get();
+        cout << "+============================================================================+\n";
+
+        resetColor();
+
+        displayArmy(
+            faction,
+            army,
+            0,
+            0,
+            attackTrainingTier,
+            mobilityTier
+        );
+
+        displayEnemyWave(
+            faction,
+            scenario,
+            wave,
+            enemyArmy,
+            enemyHealth
+        );
+
+        long long playerPower =
+            calculateArmyPower(
+                faction,
+                army,
+                attackTrainingTier,
+                mobilityTier
+            );
+
+        long long enemyPower =
+            calculateEnemyPower(
+                faction,
+                scenario,
+                enemyArmy,
+                enemyHealth
+            );
+
+        cout << "\n";
+        cout << "+============================================================================+\n";
+        cout << "|                              BATTLE POWER                                 |\n";
+        cout << "+============================================================================+\n";
+
+        cout << "| Your army power:   "
+             << left
+             << setw(58)
+             << playerPower
+             << "|\n";
+
+        cout << "| Enemy wave power:  "
+             << left
+             << setw(58)
+             << enemyPower
+             << "|\n";
+
+        cout << "+============================================================================+\n";
+
+        cout << "\n[1] BEGIN BATTLE\n";
+
+        if (thermalMissile)
+        {
+            cout << "[2] FIRE THERMAL MISSILE\n";
+        }
+
+        cout << "[0] CANCEL ATTACK\n";
+
+        cout << "\nSelect option: ";
+
+        int choice =
+            getIntInput();
+
+        if (choice == 0)
+        {
+            return false;
+        }
+
+        if (choice == 2 &&
+            thermalMissile)
+        {
+            clearScreen();
+
+            setFactionColor(faction);
+
+            cout << "\n";
+            cout << "+==============================================+\n";
+            cout << "|             THERMAL MISSILE                 |\n";
+            cout << "+==============================================+\n";
+
+            cout << "| COST: $1800                                  |\n";
+            cout << "| DAMAGE: 20% OF EACH ENEMY TYPE'S HP         |\n";
+            cout << "+==============================================+\n\n";
+
+            cout << "Launching thermal missile...\n\n";
+
+            Sleep(700);
+
+            cout << "3...\n";
+            Sleep(500);
+
+            cout << "2...\n";
+            Sleep(500);
+
+            cout << "1...\n";
+            Sleep(500);
+
+            cout << "\n*** THERMAL MISSILE LAUNCHED ***\n";
+
+            Sleep(700);
+
+            applyThermalMissileDamage(
+                faction,
+                scenario,
+                enemyArmy,
+                enemyHealth
+            );
+
+            thermalMissile = false;
+
+            resetColor();
+
+            pauseScreen();
+
+            continue;
+        }
+
+        if (choice != 1)
+        {
+            cout << "\nInvalid selection!\n";
+            pauseScreen();
+            continue;
+        }
+
+        break;
+    }
+
+    // ========================================================================
+    // BATTLE
+    // ========================================================================
 
     clearScreen();
 
@@ -1478,6 +2882,26 @@ bool attackScreen(
 
     cout << "Your forces advance...\n\n";
 
+    long long playerPower =
+        calculateArmyPower(
+            faction,
+            army,
+            attackTrainingTier,
+            mobilityTier
+        );
+
+    long long enemyPower =
+        calculateEnemyPower(
+            faction,
+            scenario,
+            enemyArmy,
+            enemyHealth
+        );
+
+    // ========================================================================
+    // PLAYER WINS
+    // ========================================================================
+
     if (playerPower >= enemyPower)
     {
         cout << "Your army overwhelms the enemy wave!\n\n";
@@ -1485,15 +2909,15 @@ bool attackScreen(
         applyCombatLosses(
             faction,
             army,
-            enemyArmy
+            enemyArmy,
+            attackTrainingTier,
+            mobilityTier,
+            scenario,
+            enemyHealth
         );
 
-        // ====================================================================
-        // WAVE REWARD
-        // ====================================================================
-
         int baseReward =
-            600 + (wave * 250);
+            600 + wave * 250;
 
         int bankBonus =
             bankTier * 100;
@@ -1507,16 +2931,33 @@ bool attackScreen(
         cout << "+==============================================+\n";
         cout << "|               WAVE DEFEATED!                |\n";
         cout << "+==============================================+\n";
-        cout << "| Wave:          " << left << setw(29)
-             << wave << "|\n";
-        cout << "| Base reward:   $" << setw(27)
-             << baseReward << "|\n";
-        cout << "| Bank bonus:    $" << setw(27)
-             << bankBonus << "|\n";
-        cout << "| Total reward:  $" << setw(27)
-             << totalReward << "|\n";
-        cout << "| New cash:      $" << setw(27)
-             << cash << "|\n";
+
+        cout << "| Wave:          "
+             << left
+             << setw(29)
+             << wave
+             << "|\n";
+
+        cout << "| Base reward:   $"
+             << setw(27)
+             << baseReward
+             << "|\n";
+
+        cout << "| Bank bonus:    $"
+             << setw(27)
+             << bankBonus
+             << "|\n";
+
+        cout << "| Total reward:  $"
+             << setw(27)
+             << totalReward
+             << "|\n";
+
+        cout << "| New cash:      $"
+             << setw(27)
+             << cash
+             << "|\n";
+
         cout << "+==============================================+\n";
 
         wave++;
@@ -1529,49 +2970,60 @@ bool attackScreen(
 
         return true;
     }
-    else
+
+    // ========================================================================
+    // PLAYER LOSES
+    // ========================================================================
+
+    cout << "The enemy overwhelms your forces!\n\n";
+
+    for (int i = 0; i < MAX_UNITS; i++)
     {
-        cout << "The enemy overwhelms your forces!\n\n";
+        if (army[i] <= 0)
+            continue;
 
-        // Heavy losses
-        for (int i = 0; i < MAX_UNITS; i++)
-        {
-            if (army[i] <= 0)
-                continue;
+        int losses =
+            max(
+                1,
+                army[i] / 2
+            );
 
-            int losses =
-                max(1, army[i] / 2);
+        losses =
+            min(
+                losses,
+                army[i]
+            );
 
-            losses = min(losses, army[i]);
+        army[i] -= losses;
 
-            army[i] -= losses;
+        cout << losses
+             << " units lost from your ";
 
-            cout << losses << " units lost from your ";
+        setFactionColor(faction);
 
-            setFactionColor(faction);
-
-            cout << (faction
-                     ? "bug "
-                     : "human ");
-
-            resetColor();
-
-            cout << "forces.\n";
-        }
-
-        cout << "\nThe wave was NOT defeated.\n";
-        cout << "Recruit more units and try again.\n";
+        cout << (
+            faction
+            ? "bug "
+            : "human "
+        );
 
         resetColor();
 
-        pauseScreen();
-
-        return false;
+        cout << "forces.\n";
     }
+
+    cout << "\nThe wave was NOT defeated.\n";
+    cout << "Recruit more units and try again.\n";
+
+    resetColor();
+
+    pauseScreen();
+
+    return false;
 }
 
 // ============================================================================
-// SABOTAGE / NUKE SYSTEM
+// SABOTAGE / NUCLEAR SYSTEM
 // ============================================================================
 
 void sabotageScreen(
@@ -1581,9 +3033,9 @@ void sabotageScreen(
     bool& warhead,
     bool& guidance,
     bool& core,
+    bool& thermalMissile,
     bool& gameWon)
 {
-    // Total nuclear component cost = $10,000
     const int WARHEAD_COST = 2500;
     const int GUIDANCE_COST = 3000;
     const int CORE_COST = 4500;
@@ -1595,94 +3047,112 @@ void sabotageScreen(
         setFactionColor(faction);
 
         string factionName =
-            faction ? "BUG HIVE" : "HUMAN MILITARY";
+            faction
+            ? "BUG HIVE"
+            : "HUMAN MILITARY";
 
         cout << "+============================================================================+\n";
         cout << "|                            SABOTAGE                                       |\n";
         cout << "+============================================================================+\n";
         cout << "|                                                                            |\n";
-        cout << "|                         " << factionName
+        cout << "|                         "
+             << factionName
              << "                                      |\n";
         cout << "|                                                                            |\n";
-        cout << "|                       NUCLEAR PROGRAM                                     |\n";
+        cout << "|                       WEAPONS PROGRAM                                     |\n";
         cout << "|                                                                            |\n";
         cout << "+----------------------------------------------------------------------------+\n";
 
-        cout << "|                                                                            |\n";
-        cout << "| Available cash: $" << left << setw(56)
-             << cash << "|\n";
+        cout << "| Available cash: $"
+             << left
+             << setw(56)
+             << cash
+             << "|\n";
 
-        cout << "| Nuclear research: " << nuclearTier << "/3"
-             << "                                                       |\n";
+        cout << "| Nuclear research: "
+             << nuclearTier
+             << "/3                                                       |\n";
 
-        cout << "| Total component cost: $10000                                               |\n";
-        cout << "|                                                                            |\n";
         cout << "+============================================================================+\n";
 
+        // ====================================================================
         // WARHEAD
+        // ====================================================================
+
         cout << "|  [1] NUCLEAR WARHEAD                                                      |\n";
         cout << "|                                                                            |\n";
 
         if (warhead)
-        {
             cout << "|      STATUS: PURCHASED                                                    |\n";
-        }
         else
-        {
-            cout << "|      STATUS: NOT PURCHASED                                                |\n";
-            cout << "|      COST:   $2500                                                         |\n";
-        }
+            cout << "|      STATUS: NOT PURCHASED - COST $2500                                   |\n";
 
         cout << "|                                                                            |\n";
 
+        // ====================================================================
         // GUIDANCE
+        // ====================================================================
+
         cout << "|  [2] GUIDANCE SYSTEM                                                      |\n";
         cout << "|                                                                            |\n";
 
         if (guidance)
-        {
             cout << "|      STATUS: PURCHASED                                                    |\n";
-        }
         else
-        {
-            cout << "|      STATUS: NOT PURCHASED                                                |\n";
-            cout << "|      COST:   $3000                                                         |\n";
-        }
+            cout << "|      STATUS: NOT PURCHASED - COST $3000                                   |\n";
 
         cout << "|                                                                            |\n";
 
+        // ====================================================================
         // CORE
+        // ====================================================================
+
         cout << "|  [3] NUCLEAR CORE                                                         |\n";
         cout << "|                                                                            |\n";
 
         if (core)
-        {
             cout << "|      STATUS: PURCHASED                                                    |\n";
+        else
+            cout << "|      STATUS: NOT PURCHASED - COST $4500                                   |\n";
+
+        cout << "|                                                                            |\n";
+        cout << "+----------------------------------------------------------------------------+\n";
+
+        // ====================================================================
+        // THERMAL MISSILE
+        // ====================================================================
+
+        cout << "|  [4] THERMAL MISSILE                                                      |\n";
+        cout << "|                                                                            |\n";
+
+        if (thermalMissile)
+        {
+            cout << "|      STATUS: READY                                                        |\n";
+            cout << "|      Effect: Damages all enemy types in a wave.                           |\n";
         }
         else
         {
             cout << "|      STATUS: NOT PURCHASED                                                |\n";
-            cout << "|      COST:   $4500                                                         |\n";
+            cout << "|      COST: $1800                                                          |\n";
         }
 
         cout << "|                                                                            |\n";
         cout << "+----------------------------------------------------------------------------+\n";
 
-        // LAUNCH
         bool nukeComplete =
-            warhead && guidance && core;
+            warhead &&
+            guidance &&
+            core;
 
         if (nukeComplete)
         {
-            cout << "|  [4] *** LAUNCH NUCLEAR WEAPON ***                                       |\n";
-            cout << "|                                                                            |\n";
+            cout << "|  [5] *** LAUNCH NUCLEAR WEAPON ***                                       |\n";
             cout << "|      ALL NUCLEAR COMPONENTS ARE READY.                                   |\n";
         }
         else
         {
-            cout << "|  [4] LAUNCH NUCLEAR WEAPON - LOCKED                                      |\n";
-            cout << "|                                                                            |\n";
-            cout << "|      Purchase all 3 parts first.                                         |\n";
+            cout << "|  [5] LAUNCH NUCLEAR WEAPON - LOCKED                                      |\n";
+            cout << "|      Purchase all 3 nuclear parts first.                                 |\n";
         }
 
         cout << "|                                                                            |\n";
@@ -1694,12 +3164,16 @@ void sabotageScreen(
 
         cout << "\nSelect sabotage option: ";
 
-        int choice = getIntInput();
+        int choice =
+            getIntInput();
 
         if (choice == 0)
             return;
 
+        // ====================================================================
         // WARHEAD
+        // ====================================================================
+
         if (choice == 1)
         {
             if (warhead)
@@ -1726,18 +3200,15 @@ void sabotageScreen(
             cash -= WARHEAD_COST;
             warhead = true;
 
-            cout << "\n";
-            cout << "+==============================================+\n";
-            cout << "|          NUCLEAR WARHEAD ACQUIRED           |\n";
-            cout << "+==============================================+\n";
-            cout << "| Cost: $2500                                  |\n";
-            cout << "| Nuclear components purchased: $2500/$10000   |\n";
-            cout << "+==============================================+\n";
+            cout << "\nNuclear Warhead acquired!\n";
 
             pauseScreen();
         }
 
+        // ====================================================================
         // GUIDANCE
+        // ====================================================================
+
         else if (choice == 2)
         {
             if (guidance)
@@ -1771,18 +3242,15 @@ void sabotageScreen(
             cash -= GUIDANCE_COST;
             guidance = true;
 
-            cout << "\n";
-            cout << "+==============================================+\n";
-            cout << "|          GUIDANCE SYSTEM ACQUIRED           |\n";
-            cout << "+==============================================+\n";
-            cout << "| Cost: $3000                                  |\n";
-            cout << "| Nuclear components purchased: $5500/$10000   |\n";
-            cout << "+==============================================+\n";
+            cout << "\nGuidance System acquired!\n";
 
             pauseScreen();
         }
 
+        // ====================================================================
         // CORE
+        // ====================================================================
+
         else if (choice == 3)
         {
             if (core)
@@ -1816,30 +3284,62 @@ void sabotageScreen(
             cash -= CORE_COST;
             core = true;
 
+            cout << "\nNuclear Core acquired!\n";
+            cout << "ALL NUCLEAR COMPONENTS ARE READY.\n";
+
+            pauseScreen();
+        }
+
+        // ====================================================================
+        // THERMAL MISSILE
+        // ====================================================================
+
+        else if (choice == 4)
+        {
+            if (thermalMissile)
+            {
+                cout << "\nYou already have a Thermal Missile ready.\n";
+                pauseScreen();
+                continue;
+            }
+
+            if (cash < THERMAL_MISSILE_COST)
+            {
+                cout << "\nNot enough cash!\n";
+                pauseScreen();
+                continue;
+            }
+
+            cash -= THERMAL_MISSILE_COST;
+
+            thermalMissile = true;
+
             cout << "\n";
             cout << "+==============================================+\n";
-            cout << "|             NUCLEAR CORE ACQUIRED           |\n";
+            cout << "|          THERMAL MISSILE ACQUIRED           |\n";
             cout << "+==============================================+\n";
-            cout << "| Cost: $4500                                  |\n";
-            cout << "| TOTAL COMPONENT COST: $10000                 |\n";
-            cout << "| ALL NUCLEAR COMPONENTS ARE READY.            |\n";
-            cout << "| THE WEAPON CAN NOW BE LAUNCHED.              |\n";
+            cout << "| Cost: $1800                                  |\n";
+            cout << "| Effect: Removes 20% HP from every enemy     |\n";
+            cout << "| type in the next wave you attack.           |\n";
+            cout << "| The missile is consumed when fired.         |\n";
             cout << "+==============================================+\n";
 
             pauseScreen();
         }
 
-        // LAUNCH
-        else if (choice == 4)
+        // ====================================================================
+        // NUKE
+        // ====================================================================
+
+        else if (choice == 5)
         {
-            if (!warhead || !guidance || !core)
+            if (!nukeComplete)
             {
                 cout << "\n";
                 cout << "+==============================================+\n";
                 cout << "|             LAUNCH SYSTEM LOCKED            |\n";
                 cout << "+==============================================+\n";
                 cout << "| You must purchase all three nuclear parts. |\n";
-                cout << "| Total cost of all parts: $10000             |\n";
                 cout << "+==============================================+\n";
 
                 pauseScreen();
@@ -1907,6 +3407,107 @@ void sabotageScreen(
 }
 
 // ============================================================================
+// LOSE SCREEN
+// ============================================================================
+
+void loseScreen(
+    bool faction)
+{
+    clearScreen();
+
+    setFactionColor(faction);
+
+    cout << "\n";
+    cout << "============================================================================\n";
+    cout << "                         DEFEAT, GAME OVER!\n";
+    cout << "============================================================================\n\n";
+
+    cout << "Your faction has been completely defeated.\n\n";
+
+    if (faction)
+    {
+        cout << "The Bug Hive has lost all of its forces.\n";
+    }
+    else
+    {
+        cout << "The Human Military has lost all of its forces.\n";
+    }
+
+    cout << "There are no resources remaining to continue the war.\n\n";
+
+    cout << "============================================================================\n";
+    cout << "                              YOU LOSE!\n";
+    cout << "============================================================================\n\n";
+
+    resetColor();
+
+    pauseScreen();
+}
+
+// ============================================================================
+// GIVE UP CONFIRMATION
+// ============================================================================
+
+bool giveUpScreen(
+    bool faction)
+{
+    clearScreen();
+
+    setFactionColor(faction);
+
+    cout << "\n";
+    cout << "+============================================================================+\n";
+    cout << "|                              GIVE UP                                      |\n";
+    cout << "+============================================================================+\n";
+    cout << "|                                                                            |\n";
+    cout << "| Are you sure you want to abandon the campaign?                            |\n";
+    cout << "|                                                                            |\n";
+    cout << "| All progress will be lost and the game will end.                          |\n";
+    cout << "|                                                                            |\n";
+    cout << "+----------------------------------------------------------------------------+\n";
+
+    resetColor();
+
+    cout << "\nEnter 1 to GIVE UP or 0 to CANCEL: ";
+
+    int choice =
+        getIntInput();
+
+    if (choice == 1)
+    {
+        clearScreen();
+
+        setFactionColor(faction);
+
+        cout << "\n";
+        cout << "============================================================================\n";
+        cout << "                         CAMPAIGN ABANDONED\n";
+        cout << "============================================================================\n\n";
+
+        cout << "You have chosen to give up the war.\n";
+        cout << "Your faction has surrendered the battlefield.\n\n";
+
+        cout << "============================================================================\n";
+        cout << "                              GAME OVER\n";
+        cout << "============================================================================\n\n";
+
+        resetColor();
+
+        pauseScreen();
+
+        return true;
+    }
+
+    cout << "\nReturning to the command center...\n";
+
+    resetColor();
+
+    pauseScreen();
+
+    return false;
+}
+
+// ============================================================================
 // MAIN
 // ============================================================================
 
@@ -1925,6 +3526,7 @@ int main()
     cout << "================================================================================================\n";
 
     pauseScreen();
+
     clearScreen();
 
     // ========================================================================
@@ -1935,56 +3537,74 @@ int main()
 
     cout << "Choose a faction: Humans(0) or Bugs(1): ";
 
-    int factionChoice = getIntInput();
+    int factionChoice =
+        getIntInput();
 
-    while (factionChoice != HUMAN && factionChoice != BUGS)
+    while (
+        factionChoice != HUMAN &&
+        factionChoice != BUGS
+    )
     {
         cout << "Please enter 0 for Humans or 1 for Bugs: ";
-        factionChoice = getIntInput();
+
+        factionChoice =
+            getIntInput();
     }
 
     bool faction =
         (factionChoice == BUGS);
 
     // ========================================================================
-    // SET FACTION COLOUR
+    // SCENARIO SELECTION
     // ========================================================================
 
-    setFactionColor(faction);
+    int scenario =
+        chooseScenario(faction);
+
+    Scenario scenarioData;
+
+    getScenario(
+        scenario,
+        faction,
+        scenarioData
+    );
 
     // ========================================================================
     // PLAYER VARIABLES
     // ========================================================================
 
-    int cash = 1000;
+    int cash =
+        scenarioData.startingCash;
 
-    int bankTier = 0;
-    int trainingTier = 0;
-    int nuclearTier = 0;
-    int weaponTier = 0;
+    int bankTier =
+        scenarioData.bankTier;
+
+    int trainingTier =
+        scenarioData.trainingTier;
+
+    int nuclearTier =
+        scenarioData.nuclearTier;
+
+    int weaponTier =
+        scenarioData.weaponTier;
+
+    int attackTrainingTier =
+        scenarioData.attackTrainingTier;
+
+    int mobilityTier =
+        scenarioData.mobilityTier;
 
     // ========================================================================
     // ARMY
     // ========================================================================
 
-    // Exactly 5 unit slots:
-    //
-    // 0 = Basic
-    // 1 = Heavy
-    // 2 = Tank / Titan
-    // 3 = Ultimate vehicle / Hive King
-    // 4 = Commander OR Hive Queen
-    //
-    // Commander and Hive Queen can NEVER exist in the same faction.
+    int army[MAX_UNITS];
 
-    int army[MAX_UNITS] =
+    for (int i = 0; i < MAX_UNITS; i++)
     {
-        0,
-        0,
-        0,
-        0,
-        0
-    };
+        army[i] =
+            scenarioData.startingArmy[i];
+    }
 
     // ========================================================================
     // WAVE
@@ -2001,33 +3621,82 @@ int main()
     bool core = false;
 
     // ========================================================================
+    // THERMAL MISSILE
+    // ========================================================================
+
+    bool thermalMissile = false;
+
+    // ========================================================================
     // GAME STATE
     // ========================================================================
 
     bool gameWon = false;
     bool gameLost = false;
+    bool gaveUp = false;
+
+    // ========================================================================
+    // SCENARIO INTRO
+    // ========================================================================
+
+    clearScreen();
+
+    setScenarioColor(scenario);
+
+    cout << "\n";
+    cout << "============================================================================\n";
+    cout << "                           " << scenarioData.name << "\n";
+    cout << "============================================================================\n\n";
+
+    cout << scenarioData.description << "\n\n";
+
+    cout << "Starting cash: $"
+         << cash
+         << "\n";
+
+    cout << "Starting Bank Tier: "
+         << bankTier
+         << "\n";
+
+    cout << "Starting Training Tier: "
+         << trainingTier
+         << "\n";
+
+    cout << "Starting Nuclear Tier: "
+         << nuclearTier
+         << "\n";
+
+    cout << "Starting Weapon Tier: "
+         << weaponTier
+         << "\n";
+
+    cout << "\n";
+
+    resetColor();
+
+    pauseScreen();
 
     // ========================================================================
     // MAIN GAME LOOP
     // ========================================================================
 
-    while (!gameWon && !gameLost)
+    while (!gameWon &&
+           !gameLost &&
+           !gaveUp)
     {
         // ====================================================================
         // DEFEAT CHECK
         // ====================================================================
-        //
-        // If the player has zero units AND cannot afford ANY currently
-        // unlocked unit, the game is over.
-        //
 
-        if (!hasAnyUnits(army) &&
+        if (
+            !hasAnyUnits(army) &&
             !canAffordAnyUnit(
                 faction,
                 cash,
                 trainingTier,
                 weaponTier,
-                army))
+                army
+            )
+        )
         {
             gameLost = true;
             break;
@@ -2038,7 +3707,10 @@ int main()
         factionScreen(
             faction,
             cash,
-            wave
+            wave,
+            scenario,
+            attackTrainingTier,
+            mobilityTier
         );
 
         cout << "\nSelect action: ";
@@ -2048,9 +3720,9 @@ int main()
 
         switch (action)
         {
-            // ================================================================
+            // =================================================================
             // RECRUIT
-            // ================================================================
+            // =================================================================
 
             case 1:
             {
@@ -2065,9 +3737,9 @@ int main()
                 break;
             }
 
-            // ================================================================
-            // UPGRADE
-            // ================================================================
+            // =================================================================
+            // UPGRADES
+            // =================================================================
 
             case 2:
             {
@@ -2077,32 +3749,38 @@ int main()
                     bankTier,
                     trainingTier,
                     nuclearTier,
-                    weaponTier
+                    weaponTier,
+                    attackTrainingTier,
+                    mobilityTier
                 );
 
                 break;
             }
 
-            // ================================================================
+            // =================================================================
             // ATTACK
-            // ================================================================
+            // =================================================================
 
             case 3:
             {
                 attackScreen(
                     faction,
+                    scenario,
                     cash,
                     bankTier,
                     wave,
-                    army
+                    army,
+                    attackTrainingTier,
+                    mobilityTier,
+                    thermalMissile
                 );
 
                 break;
             }
 
-            // ================================================================
+            // =================================================================
             // SABOTAGE
-            // ================================================================
+            // =================================================================
 
             case 4:
             {
@@ -2113,15 +3791,30 @@ int main()
                     warhead,
                     guidance,
                     core,
+                    thermalMissile,
                     gameWon
                 );
 
                 break;
             }
 
-            // ================================================================
+            // =================================================================
+            // GIVE UP
+            // =================================================================
+
+            case 5:
+            {
+                if (giveUpScreen(faction))
+                {
+                    gaveUp = true;
+                }
+
+                break;
+            }
+
+            // =================================================================
             // INVALID
-            // ================================================================
+            // =================================================================
 
             default:
             {
@@ -2160,6 +3853,14 @@ int main()
         cout << "Congratulations, Commander!\n";
         cout << "Your faction has won the war.\n\n";
 
+        cout << "Scenario completed: ";
+
+        setScenarioColor(scenario);
+
+        cout << scenarioData.name;
+
+        cout << "\n\n";
+
         cout << "============================================================================\n";
         cout << "                              YOU WIN!\n";
         cout << "============================================================================\n\n";
@@ -2175,6 +3876,31 @@ int main()
         cout << "Thanks for playing my game - K1X28";
 
         cout << "\n";
+    }
+
+    // ========================================================================
+    // GIVE UP END
+    // ========================================================================
+
+    if (gaveUp)
+    {
+        clearScreen();
+
+        setFactionColor(faction);
+
+        cout << "\n";
+        cout << "============================================================================\n";
+        cout << "                         CAMPAIGN OVER\n";
+        cout << "============================================================================\n\n";
+
+        cout << "You abandoned the campaign.\n";
+        cout << "The war has been lost by your faction.\n\n";
+
+        cout << "Thanks for playing my game - K1X28\n";
+
+        cout << "\n";
+
+        resetColor();
     }
 
     resetColor();
