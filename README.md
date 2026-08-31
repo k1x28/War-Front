@@ -10,17 +10,20 @@ Start by picking a faction. The two factions are different in two ways:
 1. Bugs are cheaper so you can buy more of them
 2. Humans have much higher stats then bugs
 
+
 Then pick a scenario, they scale in strength:
 1. Regular scenario
 2. Robots
 3. Mutants
 4. Rebels
 
+
 After you pick your faction you enter the command screen. Here you can do 4 things:
 1. Recruit-By new units with cash
 2. Upgrade-Upgrade your economy, units or unlock nuke parts
 3. Battle-Do combat, use your units for a simulation of a battle between your units and a incremental wave of enemy units
 4. Sabotage-unlocks the ending, Gain all nuke parts from upgrade, buy them and send the nuke, or send thermal rockets to damage the enemy
+
 
 ***How battles work:***
 Each battle is a simulation, every unit attack eachother, the unit with the higher speed goes first. Then they deal attack-(defense/2) damage to the enemy. The enemy is chosen via the unit type. With higher unit types attacking higher unit types. 
