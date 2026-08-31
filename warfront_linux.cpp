@@ -10,90 +10,46 @@
 using namespace std;
 
 // ============================================================================
-// LINUX / ANSI TERMINAL SUPPORT
+// LINUX / ANSI CONSOLE COLORS
 // ============================================================================
 
-namespace Terminal
+const string RESET_COLOR = "\033[0m";
+
+const string HUMAN_COLOR  = "\033[92m"; // Bright Green
+const string BUG_COLOR    = "\033[91m"; // Bright Red
+const string ROBOT_COLOR  = "\033[96m"; // Bright Cyan
+const string MUTANT_COLOR = "\033[95m"; // Bright Magenta
+const string REBEL_COLOR  = "\033[93m"; // Bright Yellow
+
+void setColor(const string& color)
 {
-    // ANSI foreground colors
-    const string RESET = "\033[0m";
-
-    const string BRIGHT_GREEN  = "\033[1;32m";
-    const string BRIGHT_RED    = "\033[1;31m";
-    const string BRIGHT_CYAN   = "\033[1;36m";
-    const string BRIGHT_MAGENTA = "\033[1;35m";
-    const string BRIGHT_YELLOW = "\033[1;33m";
-
-    void clearScreen()
-    {
-        cout << "\033[2J\033[H";
-        cout.flush();
-    }
-
-    void resetColor()
-    {
-        cout << RESET;
-    }
-
-    void setColor(const string& color)
-    {
-        cout << color;
-    }
-
-    void sleepMs(int milliseconds)
-    {
-        this_thread::sleep_for(
-            chrono::milliseconds(milliseconds)
-        );
-    }
-
-    void pauseScreen()
-    {
-        cout << "\nPress ENTER to continue...";
-
-        cin.ignore(
-            numeric_limits<streamsize>::max(),
-            '\n'
-        );
-
-        cin.get();
-    }
+    cout << color;
 }
 
-// ============================================================================
-// UNIT STRUCT
-// ============================================================================
-
-struct Unit
+void resetColor()
 {
-    string name;
-    int cost;
-    int health;
-    int attack;
-    int defense;
-    int speed;
-};
+    cout << RESET_COLOR;
+}
 
-// ============================================================================
-// SCENARIO STRUCT
-// ============================================================================
-
-struct Scenario
+void setFactionColor(bool faction)
 {
-    string name;
-    string description;
+    if (faction == BUGS)
+        setColor(BUG_COLOR);
+    else
+        setColor(HUMAN_COLOR);
+}
 
-    int startingCash;
-
-    int bankTier;
-    int trainingTier;
-    int nuclearTier;
-    int weaponTier;
-    int attackTrainingTier;
-    int mobilityTier;
-
-    int startingArmy[5];
-};
+void setScenarioColor(int scenario)
+{
+    if (scenario == SCENARIO_ROBOTS)
+        setColor(ROBOT_COLOR);
+    else if (scenario == SCENARIO_MUTANTS)
+        setColor(MUTANT_COLOR);
+    else if (scenario == SCENARIO_REBELS)
+        setColor(REBEL_COLOR);
+    else
+        resetColor();
+}
 
 // ============================================================================
 // CONSTANTS
@@ -145,8 +101,8 @@ const int TRAINING_COSTS[5] =
     200,
     400,
     600,
-    850,
-    1200
+    800,
+    1000
 };
 
 const int NUCLEAR_COSTS[3] =
@@ -169,11 +125,11 @@ const int ATTACK_TRAINING_COSTS[5] =
     300,
     600,
     900,
-    1300,
-    1800
+    1200,
+    1500
 };
 
-const int MOBILITY_COST = 1200;
+const int MOBILITY_COST = 700;
 
 // ============================================================================
 // THERMAL MISSILE
@@ -183,46 +139,69 @@ const int THERMAL_MISSILE_COST = 1800;
 const int THERMAL_DAMAGE_PERCENT = 20;
 
 // ============================================================================
-// COLOR FUNCTIONS
+// UNIT STRUCT
 // ============================================================================
 
-void setFactionColor(bool faction)
+struct Unit
 {
-    if (faction == BUGS)
-        Terminal::setColor(Terminal::BRIGHT_RED);
-    else
-        Terminal::setColor(Terminal::BRIGHT_GREEN);
-}
-
-void resetColor()
-{
-    Terminal::resetColor();
-}
-
-void setScenarioColor(int scenario)
-{
-    if (scenario == SCENARIO_ROBOTS)
-        Terminal::setColor(Terminal::BRIGHT_CYAN);
-    else if (scenario == SCENARIO_MUTANTS)
-        Terminal::setColor(Terminal::BRIGHT_MAGENTA);
-    else if (scenario == SCENARIO_REBELS)
-        Terminal::setColor(Terminal::BRIGHT_YELLOW);
-    else
-        resetColor();
-}
+    string name;
+    int cost;
+    int health;
+    int attack;
+    int defense;
+    int speed;
+};
 
 // ============================================================================
-// CLEAR / PAUSE
+// SCENARIO STRUCT
+// ============================================================================
+
+struct Scenario
+{
+    string name;
+    string description;
+
+    int startingCash;
+
+    int bankTier;
+    int trainingTier;
+    int nuclearTier;
+    int weaponTier;
+    int attackTrainingTier;
+    int mobilityTier;
+
+    int startingArmy[5];
+};
+
+// ============================================================================
+// TERMINAL FUNCTIONS
 // ============================================================================
 
 void clearScreen()
 {
-    Terminal::clearScreen();
+    // ANSI escape sequence:
+    // 2J = clear screen
+    // H  = move cursor to top-left
+    cout << "\033[2J\033[H";
+}
+
+void sleepMs(int milliseconds)
+{
+    this_thread::sleep_for(
+        chrono::milliseconds(milliseconds)
+    );
 }
 
 void pauseScreen()
 {
-    Terminal::pauseScreen();
+    cout << "\nPress ENTER to continue...";
+
+    cin.ignore(
+        numeric_limits<streamsize>::max(),
+        '\n'
+    );
+
+    cin.get();
 }
 
 // ============================================================================
@@ -283,8 +262,8 @@ void printFacs()
 |      |Ll //Ll|\ \              |
 |      |__//   | \_\             |
 |     /---|[]==| / /             |
-|     \__/ |   \/\/             |
-|     /_   | Ll_\|              |
+|     \__/ |   \/\/              |
+|     /_   | Ll_\|               |
 |      |`^"""^`|                 |
 |      |   |   |                 |
 |      |   |   |                 |
@@ -408,7 +387,7 @@ void factionScreen(
 |         |   |  (O)   |   | ;   |  (O)  |   ; |   |  (O)   |   |            |
 |         ;    \\     /    ;  \\   \\     /   /  ;    \\     /    ;          |
 |          \\    '---'    /    '.  '---'  .'    \\    '---'    /             |
-|           '.         .'       '-.   -'       '.         .'                |
+|           '.         .'       '-.   -'       '.         .'                 |
 |             '-.___.-'            \\ /             '-.___.-'                |
 |                                  / \\                                      |
 |                         ________/   \\________                             |
@@ -441,14 +420,14 @@ void factionScreen(
 |    | Fight waves    |        | Build the Nuke |                            |
 |    +----------------+        +----------------+                            |
 |                                                                            |
-|    +----------------+                                                       |
-|    | [5] GIVE UP    |                                                       |
-|    |                |                                                       |
-|    | End campaign   |                                                       |
-|    +----------------+                                                       |
+|    +----------------+                                                      |
+|    | [5] GIVE UP    |                                                      |
+|    |                |                                                      |
+|    | End campaign   |                                                      |
+|    +----------------+                                                      |
 |                                                                            |
 +============================================================================+
-|                              SELECT ACTION                                |
+|                              SELECT ACTION                                 |
 +============================================================================+
 )";
 
@@ -488,7 +467,7 @@ void factionScreen(
          << setw(48)
          << (
             mobilityTier
-            ? "+1 Speed for Tier 3/4 units"
+            ? "+1 Speed for Tier 34 units"
             : "Not researched"
          )
          << "|\n";
@@ -508,107 +487,19 @@ void getBaseUnits(
 {
     if (!faction)
     {
-        units[0] =
-        {
-            "Soldier",
-            100,
-            100,
-            25,
-            15,
-            10
-        };
-
-        units[1] =
-        {
-            "Heavy Soldier",
-            250,
-            220,
-            45,
-            35,
-            6
-        };
-
-        units[2] =
-        {
-            "Tank",
-            500,
-            500,
-            80,
-            55,
-            5
-        };
-
-        units[3] =
-        {
-            "Destroyer Tank",
-            900,
-            850,
-            130,
-            75,
-            3
-        };
-
-        units[4] =
-        {
-            "Commander",
-            1800,
-            1100,
-            170,
-            90,
-            8
-        };
+        units[0] = {"Soldier", 100, 100, 25, 15, 10};
+        units[1] = {"Heavy Soldier", 250, 220, 45, 35, 6};
+        units[2] = {"Tank", 500, 500, 80, 55, 5};
+        units[3] = {"Destroyer Tank", 900, 850, 130, 75, 3};
+        units[4] = {"Commander", 1800, 1100, 170, 90, 8};
     }
     else
     {
-        units[0] =
-        {
-            "Buggo",
-            60,
-            80,
-            20,
-            10,
-            12
-        };
-
-        units[1] =
-        {
-            "Buggo Elite",
-            160,
-            170,
-            38,
-            25,
-            9
-        };
-
-        units[2] =
-        {
-            "Hive Titan",
-            350,
-            400,
-            70,
-            45,
-            4
-        };
-
-        units[3] =
-        {
-            "Hive King",
-            650,
-            700,
-            110,
-            60,
-            3
-        };
-
-        units[4] =
-        {
-            "Hive Queen",
-            1800,
-            1200,
-            180,
-            100,
-            7
-        };
+        units[0] = {"Buggo", 60, 80, 20, 10, 12};
+        units[1] = {"Buggo Elite", 160, 170, 38, 25, 9};
+        units[2] = {"Hive Titan", 350, 400, 70, 45, 4};
+        units[3] = {"Hive King", 650, 700, 110, 60, 3};
+        units[4] = {"Hive Queen", 1800, 1200, 180, 100, 7};
     }
 }
 
@@ -632,11 +523,8 @@ void applyUnitUpgrades(
                 attackMultiplier
             );
 
-        if (mobilityTier > 0 &&
-            i >= 2)
-        {
+        if (mobilityTier > 0 && i >= 2)
             units[i].speed += 1;
-        }
     }
 }
 
@@ -667,20 +555,14 @@ void getScenario(
 
     if (scenario == SCENARIO_STANDARD)
     {
-        data.name =
-            "STANDARD WAR";
-
+        data.name = "STANDARD WAR";
         data.description =
             "A conventional war between Humans and Bugs.";
-
         data.startingCash = 1000;
     }
-
     else if (scenario == SCENARIO_ROBOTS)
     {
-        data.name =
-            "ROBOT UPRISING";
-
+        data.name = "ROBOT UPRISING";
         data.description =
             "Autonomous war machines have declared war on everyone.";
 
@@ -693,12 +575,9 @@ void getScenario(
         data.startingArmy[0] = 3;
         data.startingArmy[1] = 2;
     }
-
     else if (scenario == SCENARIO_MUTANTS)
     {
-        data.name =
-            "MUTANT OUTBREAK";
-
+        data.name = "MUTANT OUTBREAK";
         data.description =
             "A biological disaster has created a mutant army.";
 
@@ -711,13 +590,10 @@ void getScenario(
         data.startingArmy[0] = 5;
         data.startingArmy[1] = 1;
     }
-
     else if (scenario == SCENARIO_REBELS)
     {
         data.name =
-            faction
-            ? "BUG REBELLION"
-            : "HUMAN REBELLION";
+            faction ? "BUG REBELLION" : "HUMAN REBELLION";
 
         data.description =
             faction
@@ -802,15 +678,12 @@ int chooseScenario(bool faction)
 
     cout << "\nSelect scenario: ";
 
-    int choice =
-        getIntInput();
+    int choice = getIntInput();
 
     while (choice < 1 || choice > 4)
     {
         cout << "Please select a scenario from 1-4: ";
-
-        choice =
-            getIntInput();
+        choice = getIntInput();
     }
 
     return choice - 1;
@@ -830,10 +703,7 @@ void displayArmy(
 {
     Unit units[MAX_UNITS];
 
-    getBaseUnits(
-        faction,
-        units
-    );
+    getBaseUnits(faction, units);
 
     applyUnitUpgrades(
         units,
@@ -910,13 +780,9 @@ void recruitScreen(
 {
     Unit units[MAX_UNITS];
 
-    getBaseUnits(
-        faction,
-        units
-    );
+    getBaseUnits(faction, units);
 
-    int maxUnits =
-        weaponTier + 1;
+    int maxUnits = weaponTier + 1;
 
     if (maxUnits > MAX_UNITS)
         maxUnits = MAX_UNITS;
@@ -925,7 +791,7 @@ void recruitScreen(
     {
         units[i].cost =
             units[i].cost *
-            (100 - trainingTier * 5) /
+            (100 - trainingTier * 10) /
             100;
     }
 
@@ -1016,7 +882,7 @@ void recruitScreen(
          << "                      |\n";
 
     cout << "|                         TRAINING DISCOUNT: "
-         << trainingTier * 5
+         << trainingTier * 10
          << "%                           |\n";
 
     cout << "+============================================================================+\n";
@@ -1035,27 +901,13 @@ void recruitScreen(
         if (i >= maxUnits)
         {
             cout << left
-                 << setw(20)
-                 << "LOCKED"
-
-                 << setw(10)
-                 << "-"
-
-                 << setw(10)
-                 << "-"
-
-                 << setw(6)
-                 << "-"
-
-                 << setw(6)
-                 << "-"
-
-                 << setw(6)
-                 << "-"
-
-                 << setw(8)
-                 << "-"
-
+                 << setw(20) << "LOCKED"
+                 << setw(10) << "-"
+                 << setw(10) << "-"
+                 << setw(6) << "-"
+                 << setw(6) << "-"
+                 << setw(6) << "-"
+                 << setw(8) << "-"
                  << "|\n";
 
             continue;
@@ -1112,8 +964,7 @@ void recruitScreen(
 
     cout << "\nSelect a unit to recruit: ";
 
-    int choice =
-        getIntInput();
+    int choice = getIntInput();
 
     if (choice == 0)
         return;
@@ -1148,11 +999,9 @@ void recruitScreen(
         return;
     }
 
-    Unit selected =
-        units[choice - 1];
+    Unit selected = units[choice - 1];
 
-    if (choice == 5 &&
-        army[4] >= 1)
+    if (choice == 5 && army[4] >= 1)
     {
         cout << "\n";
         cout << "+==============================================+\n";
@@ -1175,8 +1024,7 @@ void recruitScreen(
          << selected.name
          << "(s) do you want to recruit? ";
 
-    int quantity =
-        getIntInput();
+    int quantity = getIntInput();
 
     if (quantity <= 0)
     {
@@ -1185,8 +1033,7 @@ void recruitScreen(
         return;
     }
 
-    if (choice == 5 &&
-        quantity > 1)
+    if (choice == 5 && quantity > 1)
     {
         cout << "\n";
         cout << "+==============================================+\n";
@@ -1206,9 +1053,7 @@ void recruitScreen(
     }
 
     long long totalCost =
-        static_cast<long long>(
-            selected.cost
-        ) * quantity;
+        static_cast<long long>(selected.cost) * quantity;
 
     if (totalCost > cash)
     {
@@ -1354,13 +1199,14 @@ void upgradeScreen(
             cout << "|      MAXIMUM TIER REACHED\n";
 
         cout << "|\n";
+
         cout << "|  [2] BETTER TRAINING EQUIPMENT                                            |\n";
         cout << "|      Tier: "
              << trainingTier
              << "/5                                                             |\n";
 
         cout << "|      Effect: "
-             << trainingTier * 5
+             << trainingTier * 10
              << "% cheaper recruitment\n";
 
         if (trainingTier < MAX_TRAINING)
@@ -1371,6 +1217,7 @@ void upgradeScreen(
             cout << "|      MAXIMUM TIER REACHED\n";
 
         cout << "|\n";
+
         cout << "|  [3] NUCLEAR OPTION RESEARCH                                              |\n";
         cout << "|      Tier: "
              << nuclearTier
@@ -1397,6 +1244,7 @@ void upgradeScreen(
             cout << "|      NUCLEAR RESEARCH COMPLETE\n";
 
         cout << "|\n";
+
         cout << "|  [4] ADVANCED WEAPONRY                                                    |\n";
         cout << "|      Tier: "
              << weaponTier
@@ -1425,6 +1273,7 @@ void upgradeScreen(
             cout << "|      ALL ADVANCED UNITS UNLOCKED\n";
 
         cout << "|\n";
+
         cout << "|  [5] ATTACK TRAINING                                                      |\n";
         cout << "|      Tier: "
              << attackTrainingTier
@@ -1446,6 +1295,7 @@ void upgradeScreen(
         }
 
         cout << "|\n";
+
         cout << "|  [6] ADVANCED MOBILITY                                                    |\n";
         cout << "|      Tier: "
              << mobilityTier
@@ -1469,8 +1319,7 @@ void upgradeScreen(
 
         cout << "\nSelect an upgrade: ";
 
-        int choice =
-            getIntInput();
+        int choice = getIntInput();
 
         if (choice == 0)
             return;
@@ -1491,8 +1340,7 @@ void upgradeScreen(
                 continue;
             }
 
-            int cost =
-                BANK_COSTS[bankTier];
+            int cost = BANK_COSTS[bankTier];
 
             if (cash < cost)
             {
@@ -1520,8 +1368,7 @@ void upgradeScreen(
                 continue;
             }
 
-            int cost =
-                TRAINING_COSTS[trainingTier];
+            int cost = TRAINING_COSTS[trainingTier];
 
             if (cash < cost)
             {
@@ -1538,7 +1385,7 @@ void upgradeScreen(
                  << "!\n";
 
             cout << "Recruitment is now "
-                 << trainingTier * 5
+                 << trainingTier * 10
                  << "% cheaper.\n";
 
             pauseScreen();
@@ -1553,8 +1400,7 @@ void upgradeScreen(
                 continue;
             }
 
-            int cost =
-                NUCLEAR_COSTS[nuclearTier];
+            int cost = NUCLEAR_COSTS[nuclearTier];
 
             if (cash < cost)
             {
@@ -1585,8 +1431,7 @@ void upgradeScreen(
                 continue;
             }
 
-            int cost =
-                WEAPON_COSTS[weaponTier];
+            int cost = WEAPON_COSTS[weaponTier];
 
             if (cash < cost)
             {
@@ -1701,111 +1546,21 @@ void getEnemyUnits(
 {
     if (scenario == SCENARIO_ROBOTS)
     {
-        enemyUnits[0] =
-        {
-            "Scout Robot",
-            80,
-            100,
-            30,
-            20,
-            14
-        };
-
-        enemyUnits[1] =
-        {
-            "Combat Robot",
-            200,
-            240,
-            50,
-            40,
-            9
-        };
-
-        enemyUnits[2] =
-        {
-            "Robot Tank",
-            450,
-            550,
-            85,
-            65,
-            6
-        };
-
-        enemyUnits[3] =
-        {
-            "Destroyer Robot",
-            850,
-            900,
-            140,
-            85,
-            5
-        };
-
-        enemyUnits[4] =
-        {
-            "ROBOT OVERLORD",
-            2200,
-            1400,
-            210,
-            120,
-            8
-        };
-
+        enemyUnits[0] = {"Scout Robot", 80, 100, 28, 17, 14};
+        enemyUnits[1] = {"Combat Robot", 200, 240, 45, 36, 9};
+        enemyUnits[2] = {"Robot Tank", 450, 550, 70, 45, 6};
+        enemyUnits[3] = {"Destroyer Robot", 850, 900, 130, 80, 5};
+        enemyUnits[4] = {"ROBOT OVERLORD", 2200, 1200, 200, 100, 8};
         return;
     }
 
     if (scenario == SCENARIO_MUTANTS)
     {
-        enemyUnits[0] =
-        {
-            "Mutant",
-            70,
-            120,
-            28,
-            8,
-            10
-        };
-
-        enemyUnits[1] =
-        {
-            "Mutant Brute",
-            180,
-            300,
-            50,
-            25,
-            6
-        };
-
-        enemyUnits[2] =
-        {
-            "Mutant Beast",
-            400,
-            600,
-            90,
-            35,
-            7
-        };
-
-        enemyUnits[3] =
-        {
-            "Mutant Abomination",
-            800,
-            950,
-            135,
-            55,
-            4
-        };
-
-        enemyUnits[4] =
-        {
-            "MUTANT ALPHA",
-            2000,
-            1500,
-            220,
-            80,
-            6
-        };
-
+        enemyUnits[0] = {"Mutant", 70, 120, 26, 8, 11};
+        enemyUnits[1] = {"Mutant Brute", 180, 270, 40, 20, 6};
+        enemyUnits[2] = {"Mutant Beast", 400, 550, 70, 30, 7};
+        enemyUnits[3] = {"Mutant Abomination", 800, 950, 130, 50, 4};
+        enemyUnits[4] = {"MUTANT ALPHA", 2000, 1500, 190, 70, 6};
         return;
     }
 
@@ -1813,107 +1568,19 @@ void getEnemyUnits(
     {
         if (!faction)
         {
-            enemyUnits[0] =
-            {
-                "Rebel Soldier",
-                90,
-                110,
-                28,
-                13,
-                11
-            };
-
-            enemyUnits[1] =
-            {
-                "Rebel Heavy",
-                230,
-                230,
-                48,
-                30,
-                7
-            };
-
-            enemyUnits[2] =
-            {
-                "Rebel Tank",
-                450,
-                520,
-                82,
-                50,
-                5
-            };
-
-            enemyUnits[3] =
-            {
-                "Rebel Destroyer",
-                850,
-                850,
-                125,
-                70,
-                4
-            };
-
-            enemyUnits[4] =
-            {
-                "REBEL COMMANDER",
-                1900,
-                1200,
-                190,
-                95,
-                8
-            };
+            enemyUnits[0] = {"Rebel Soldier", 90, 110, 27, 12, 11};
+            enemyUnits[1] = {"Rebel Heavy", 230, 230, 45, 38, 7};
+            enemyUnits[2] = {"Rebel Tank", 450, 520, 76, 45, 5};
+            enemyUnits[3] = {"Rebel Destroyer", 850, 850, 110, 65, 4};
+            enemyUnits[4] = {"REBEL COMMANDER", 1900, 1200, 160, 80, 8};
         }
         else
         {
-            enemyUnits[0] =
-            {
-                "Rebel Buggo",
-                65,
-                90,
-                23,
-                9,
-                13
-            };
-
-            enemyUnits[1] =
-            {
-                "Rebel Elite Bug",
-                170,
-                180,
-                40,
-                23,
-                10
-            };
-
-            enemyUnits[2] =
-            {
-                "Rebel Hive Beast",
-                380,
-                430,
-                75,
-                40,
-                5
-            };
-
-            enemyUnits[3] =
-            {
-                "Rebel Hive King",
-                700,
-                750,
-                115,
-                55,
-                4
-            };
-
-            enemyUnits[4] =
-            {
-                "REBEL QUEEN",
-                1900,
-                1250,
-                190,
-                95,
-                7
-            };
+            enemyUnits[0] = {"Rebel Buggo", 65, 85, 21, 7, 13};
+            enemyUnits[1] = {"Rebel Elite Bug", 170, 160, 38, 21, 10};
+            enemyUnits[2] = {"Rebel Hive Beast", 380, 420, 70, 35, 5};
+            enemyUnits[3] = {"Rebel Hive King", 700, 730, 105, 52, 4};
+            enemyUnits[4] = {"REBEL QUEEN", 1900, 1100, 175, 90, 8};
         }
 
         return;
@@ -1921,107 +1588,19 @@ void getEnemyUnits(
 
     if (!faction)
     {
-        enemyUnits[0] =
-        {
-            "Buggo",
-            60,
-            80,
-            20,
-            10,
-            12
-        };
-
-        enemyUnits[1] =
-        {
-            "Buggo Elite",
-            160,
-            170,
-            38,
-            25,
-            9
-        };
-
-        enemyUnits[2] =
-        {
-            "Hive Titan",
-            350,
-            400,
-            70,
-            45,
-            4
-        };
-
-        enemyUnits[3] =
-        {
-            "Hive King",
-            650,
-            700,
-            110,
-            60,
-            3
-        };
-
-        enemyUnits[4] =
-        {
-            "Hive Queen",
-            1800,
-            1200,
-            180,
-            100,
-            7
-        };
+        enemyUnits[0] = {"Buggo", 60, 80, 20, 10, 12};
+        enemyUnits[1] = {"Buggo Elite", 160, 170, 38, 25, 9};
+        enemyUnits[2] = {"Hive Titan", 350, 400, 70, 45, 4};
+        enemyUnits[3] = {"Hive King", 650, 700, 110, 60, 3};
+        enemyUnits[4] = {"Hive Queen", 1800, 1200, 180, 100, 7};
     }
     else
     {
-        enemyUnits[0] =
-        {
-            "Soldier",
-            100,
-            100,
-            25,
-            15,
-            10
-        };
-
-        enemyUnits[1] =
-        {
-            "Heavy Soldier",
-            250,
-            220,
-            45,
-            35,
-            6
-        };
-
-        enemyUnits[2] =
-        {
-            "Tank",
-            500,
-            500,
-            80,
-            55,
-            5
-        };
-
-        enemyUnits[3] =
-        {
-            "Destroyer Tank",
-            900,
-            850,
-            130,
-            75,
-            3
-        };
-
-        enemyUnits[4] =
-        {
-            "Commander",
-            1800,
-            1100,
-            170,
-            90,
-            8
-        };
+        enemyUnits[0] = {"Soldier", 100, 100, 25, 15, 10};
+        enemyUnits[1] = {"Heavy Soldier", 250, 220, 45, 35, 6};
+        enemyUnits[2] = {"Tank", 500, 500, 80, 55, 5};
+        enemyUnits[3] = {"Destroyer Tank", 900, 850, 130, 75, 3};
+        enemyUnits[4] = {"Commander", 1800, 1100, 170, 90, 8};
     }
 }
 
@@ -2035,25 +1614,19 @@ void createEnemyWave(
     int wave,
     int enemyArmy[])
 {
-    (void)faction;
-
     for (int i = 0; i < MAX_UNITS; i++)
         enemyArmy[i] = 0;
 
-    enemyArmy[0] =
-        4 + wave;
+    enemyArmy[0] = 4 + wave;
 
     if (wave >= 3)
-        enemyArmy[1] =
-            1 + (wave - 3) / 2;
+        enemyArmy[1] = 1 + (wave - 3) / 2;
 
     if (wave >= 6)
-        enemyArmy[2] =
-            1 + (wave - 6) / 3;
+        enemyArmy[2] = 1 + (wave - 6) / 3;
 
     if (wave >= 10)
-        enemyArmy[3] =
-            1 + (wave - 10) / 4;
+        enemyArmy[3] = 1 + (wave - 10) / 4;
 
     if (wave >= 15)
         enemyArmy[4] = 1;
@@ -2062,23 +1635,21 @@ void createEnemyWave(
     {
         enemyArmy[0] += 2;
 
-        if (wave >= 4)
+        if (wave >= 5)
             enemyArmy[1]++;
 
-        if (wave >= 8)
+        if (wave >= 9)
             enemyArmy[2]++;
 
-        if (wave >= 12)
+        if (wave >= 13)
             enemyArmy[3]++;
 
-        if (wave >= 18)
+        if (wave >= 19)
             enemyArmy[4]++;
     }
-
     else if (scenario == SCENARIO_MUTANTS)
     {
-        enemyArmy[0] =
-            3 + wave / 2;
+        enemyArmy[0] = 3 + wave / 2;
 
         if (wave >= 3)
             enemyArmy[1] += 2;
@@ -2086,27 +1657,26 @@ void createEnemyWave(
         if (wave >= 6)
             enemyArmy[2]++;
 
-        if (wave >= 9)
+        if (wave >= 11)
             enemyArmy[3]++;
 
-        if (wave >= 13)
+        if (wave >= 15)
             enemyArmy[4] = 1;
     }
-
     else if (scenario == SCENARIO_REBELS)
     {
         enemyArmy[0] += 1;
 
-        if (wave >= 2)
+        if (wave >= 3)
             enemyArmy[1]++;
 
         if (wave >= 5)
             enemyArmy[2]++;
 
-        if (wave >= 9)
+        if (wave >= 10)
             enemyArmy[3]++;
 
-        if (wave >= 14)
+        if (wave >= 16)
             enemyArmy[4] = 1;
     }
 }
@@ -2132,8 +1702,7 @@ void createEnemyHealth(
     for (int i = 0; i < MAX_UNITS; i++)
     {
         enemyHealth[i] =
-            enemyArmy[i] *
-            enemyUnits[i].health;
+            enemyArmy[i] * enemyUnits[i].health;
     }
 }
 
@@ -2244,20 +1813,12 @@ long long calculateArmyPower(
             continue;
 
         long long unitPower =
-            static_cast<long long>(
-                units[i].attack
-            ) * 3
-
-            + static_cast<long long>(
-                units[i].defense
-            ) * 2
-
+            static_cast<long long>(units[i].attack) * 3
+            + static_cast<long long>(units[i].defense) * 2
             + units[i].health
-
             + units[i].speed * 5;
 
-        power +=
-            unitPower * army[i];
+        power += unitPower * army[i];
     }
 
     return power;
@@ -2289,50 +1850,33 @@ long long calculateEnemyPower(
             continue;
 
         long long fullHealth =
-            static_cast<long long>(
-                enemyArmy[i]
-            ) *
+            static_cast<long long>(enemyArmy[i]) *
             units[i].health;
 
-        double healthRatio =
-            1.0;
+        double healthRatio = 1.0;
 
         if (fullHealth > 0)
         {
             healthRatio =
-                static_cast<double>(
-                    enemyHealth[i]
-                ) /
-                static_cast<double>(
-                    fullHealth
-                );
+                static_cast<double>(enemyHealth[i]) /
+                static_cast<double>(fullHealth);
         }
 
         if (healthRatio < 0)
             healthRatio = 0;
 
         long long unitPower =
-            static_cast<long long>(
-                units[i].attack
-            ) * 3
-
-            + static_cast<long long>(
-                units[i].defense
-            ) * 2
-
+            static_cast<long long>(units[i].attack) * 3
+            + static_cast<long long>(units[i].defense) * 2
             + units[i].health
-
             + units[i].speed * 5;
 
         unitPower =
             static_cast<long long>(
-                unitPower *
-                healthRatio
+                unitPower * healthRatio
             );
 
-        power +=
-            unitPower *
-            enemyArmy[i];
+        power += unitPower * enemyArmy[i];
     }
 
     return power;
@@ -2399,14 +1943,10 @@ void applyCombatLosses(
                 army[i] * lossRatio
             );
 
-        if (losses == 0 &&
-            army[i] > 2)
-        {
+        if (losses == 0 && army[i] > 2)
             losses = 1;
-        }
 
-        if (i == 4 &&
-            army[i] == 1)
+        if (i == 4 && army[i] == 1)
         {
             if (lossRatio >= 0.65)
                 losses = 1;
@@ -2436,8 +1976,7 @@ void applyCombatLosses(
 // HAS ANY UNITS
 // ============================================================================
 
-bool hasAnyUnits(
-    int army[])
+bool hasAnyUnits(int army[])
 {
     for (int i = 0; i < MAX_UNITS; i++)
     {
@@ -2466,8 +2005,7 @@ bool canAffordAnyUnit(
         units
     );
 
-    int maxUnits =
-        weaponTier + 1;
+    int maxUnits = weaponTier + 1;
 
     if (maxUnits > MAX_UNITS)
         maxUnits = MAX_UNITS;
@@ -2476,14 +2014,11 @@ bool canAffordAnyUnit(
     {
         int discountedCost =
             units[i].cost *
-            (100 - trainingTier * 5) /
+            (100 - trainingTier * 10) /
             100;
 
-        if (i == 4 &&
-            army[4] >= 1)
-        {
+        if (i == 4 && army[4] >= 1)
             continue;
-        }
 
         if (cash >= discountedCost)
             return true;
@@ -2520,8 +2055,7 @@ void applyThermalMissileDamage(
         if (enemyArmy[i] <= 0)
             continue;
 
-        int oldHealth =
-            enemyHealth[i];
+        int oldHealth = enemyHealth[i];
 
         int damage =
             static_cast<int>(
@@ -2541,9 +2075,8 @@ void applyThermalMissileDamage(
         cout << enemyUnits[i].name
              << " lost "
              << damage
-             << " HP";
-
-        cout << " ("
+             << " HP"
+             << " ("
              << oldHealth
              << " -> "
              << enemyHealth[i]
@@ -2606,6 +2139,10 @@ bool attackScreen(
         enemyArmy,
         enemyHealth
     );
+
+    // ========================================================================
+    // ATTACK PREPARATION
+    // ========================================================================
 
     while (true)
     {
@@ -2699,24 +2236,18 @@ bool attackScreen(
         cout << "\n[1] BEGIN BATTLE\n";
 
         if (thermalMissile)
-        {
             cout << "[2] FIRE THERMAL MISSILE\n";
-        }
 
         cout << "[0] CANCEL ATTACK\n";
 
         cout << "\nSelect option: ";
 
-        int choice =
-            getIntInput();
+        int choice = getIntInput();
 
         if (choice == 0)
-        {
             return false;
-        }
 
-        if (choice == 2 &&
-            thermalMissile)
+        if (choice == 2 && thermalMissile)
         {
             clearScreen();
 
@@ -2733,20 +2264,20 @@ bool attackScreen(
 
             cout << "Launching thermal missile...\n\n";
 
-            Terminal::sleepMs(700);
+            sleepMs(700);
 
             cout << "3...\n";
-            Terminal::sleepMs(500);
+            sleepMs(500);
 
             cout << "2...\n";
-            Terminal::sleepMs(500);
+            sleepMs(500);
 
             cout << "1...\n";
-            Terminal::sleepMs(500);
+            sleepMs(500);
 
             cout << "\n*** THERMAL MISSILE LAUNCHED ***\n";
 
-            Terminal::sleepMs(700);
+            sleepMs(700);
 
             applyThermalMissileDamage(
                 faction,
@@ -2773,6 +2304,10 @@ bool attackScreen(
 
         break;
     }
+
+    // ========================================================================
+    // BATTLE
+    // ========================================================================
 
     clearScreen();
 
@@ -3042,8 +2577,7 @@ void sabotageScreen(
 
         cout << "\nSelect sabotage option: ";
 
-        int choice =
-            getIntInput();
+        int choice = getIntInput();
 
         if (choice == 0)
             return;
@@ -3223,22 +2757,22 @@ void sabotageScreen(
             cout << "LAUNCH SEQUENCE INITIATED.\n\n";
 
             cout << "3...\n";
-            Terminal::sleepMs(700);
+            sleepMs(700);
 
             cout << "2...\n";
-            Terminal::sleepMs(700);
+            sleepMs(700);
 
             cout << "1...\n";
-            Terminal::sleepMs(700);
+            sleepMs(700);
 
             cout << "\n";
             cout << "                  *** LAUNCH ***\n\n";
 
-            Terminal::sleepMs(1000);
+            sleepMs(1000);
 
             cout << "                  *** IMPACT ***\n\n";
 
-            Terminal::sleepMs(1200);
+            sleepMs(1200);
 
             cout << "==============================================================\n";
             cout << "                         YOU WIN!\n";
@@ -3268,8 +2802,7 @@ void sabotageScreen(
 // LOSE SCREEN
 // ============================================================================
 
-void loseScreen(
-    bool faction)
+void loseScreen(bool faction)
 {
     clearScreen();
 
@@ -3283,13 +2816,9 @@ void loseScreen(
     cout << "Your faction has been completely defeated.\n\n";
 
     if (faction)
-    {
         cout << "The Bug Hive has lost all of its forces.\n";
-    }
     else
-    {
         cout << "The Human Military has lost all of its forces.\n";
-    }
 
     cout << "There are no resources remaining to continue the war.\n\n";
 
@@ -3306,8 +2835,7 @@ void loseScreen(
 // GIVE UP CONFIRMATION
 // ============================================================================
 
-bool giveUpScreen(
-    bool faction)
+bool giveUpScreen(bool faction)
 {
     clearScreen();
 
@@ -3328,8 +2856,7 @@ bool giveUpScreen(
 
     cout << "\nEnter 1 to GIVE UP or 0 to CANCEL: ";
 
-    int choice =
-        getIntInput();
+    int choice = getIntInput();
 
     if (choice == 1)
     {
@@ -3393,8 +2920,7 @@ int main()
 
     cout << "Choose a faction: Humans(0) or Bugs(1): ";
 
-    int factionChoice =
-        getIntInput();
+    int factionChoice = getIntInput();
 
     while (
         factionChoice != HUMAN &&
@@ -3403,8 +2929,7 @@ int main()
     {
         cout << "Please enter 0 for Humans or 1 for Bugs: ";
 
-        factionChoice =
-            getIntInput();
+        factionChoice = getIntInput();
     }
 
     bool faction =
@@ -3539,6 +3064,10 @@ int main()
            !gameLost &&
            !gaveUp)
     {
+        // ====================================================================
+        // DEFEAT CHECK
+        // ====================================================================
+
         if (
             !hasAnyUnits(army) &&
             !canAffordAnyUnit(
@@ -3567,8 +3096,7 @@ int main()
 
         cout << "\nSelect action: ";
 
-        int action =
-            getIntInput();
+        int action = getIntInput();
 
         switch (action)
         {
@@ -3637,9 +3165,7 @@ int main()
             case 5:
             {
                 if (giveUpScreen(faction))
-                {
                     gaveUp = true;
-                }
 
                 break;
             }
