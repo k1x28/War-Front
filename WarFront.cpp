@@ -93,8 +93,8 @@ const int TRAINING_COSTS[5] =
     200,
     400,
     600,
-    850,
-    1200
+    800,
+    1000
 };
 
 const int NUCLEAR_COSTS[3] =
@@ -117,11 +117,11 @@ const int ATTACK_TRAINING_COSTS[5] =
     300,
     600,
     900,
-    1300,
-    1800
+    1200,
+    1500
 };
 
-const int MOBILITY_COST = 1200;
+const int MOBILITY_COST = 700;
 
 // ============================================================================
 // THERMAL MISSILE
@@ -278,8 +278,8 @@ void printFacs()
 |      |Ll //Ll|\ \              |
 |      |__//   | \_\             |
 |     /---|[]==| / /             |
-|     \__/ |   \/\/             |
-|     /_   | Ll_\|              |
+|     \__/ |   \/\/              |
+|     /_   | Ll_\|               |
 |      |`^"""^`|                 |
 |      |   |   |                 |
 |      |   |   |                 |
@@ -403,7 +403,7 @@ void factionScreen(
 |         |   |  (O)   |   | ;   |  (O)  |   ; |   |  (O)   |   |            |
 |         ;    \\     /    ;  \\   \\     /   /  ;    \\     /    ;          |
 |          \\    '---'    /    '.  '---'  .'    \\    '---'    /             |
-|           '.         .'       '-.   -'       '.         .'                |
+|           '.         .'       '-.   -'       '.         .'                 |
 |             '-.___.-'            \\ /             '-.___.-'                |
 |                                  / \\                                      |
 |                         ________/   \\________                             |
@@ -436,14 +436,14 @@ void factionScreen(
 |    | Fight waves    |        | Build the Nuke |                            |
 |    +----------------+        +----------------+                            |
 |                                                                            |
-|    +----------------+                                                       |
-|    | [5] GIVE UP    |                                                       |
-|    |                |                                                       |
-|    | End campaign   |                                                       |
-|    +----------------+                                                       |
+|    +----------------+                                                      |
+|    | [5] GIVE UP    |                                                      |
+|    |                |                                                      |
+|    | End campaign   |                                                      |
+|    +----------------+                                                      |
 |                                                                            |
 +============================================================================+
-|                              SELECT ACTION                                |
+|                              SELECT ACTION                                 |
 +============================================================================+
 )";
 
@@ -483,7 +483,7 @@ void factionScreen(
          << setw(48)
          << (
             mobilityTier
-            ? "+1 Speed for Tier 3/4 units"
+            ? "+1 Speed for Tier 34 units"
             : "Not researched"
          )
          << "|\n";
@@ -937,7 +937,7 @@ void recruitScreen(
     {
         units[i].cost =
             units[i].cost *
-            (100 - trainingTier * 5) /
+            (100 - trainingTier * 10) /
             100;
     }
 
@@ -1028,7 +1028,7 @@ void recruitScreen(
          << "                      |\n";
 
     cout << "|                         TRAINING DISCOUNT: "
-         << trainingTier * 5
+         << trainingTier * 10
          << "%                           |\n";
 
     cout << "+============================================================================+\n";
@@ -1380,7 +1380,7 @@ void upgradeScreen(
              << "/5                                                             |\n";
 
         cout << "|      Effect: "
-             << trainingTier * 5
+             << trainingTier * 10
              << "% cheaper recruitment\n";
 
         if (trainingTier < MAX_TRAINING)
@@ -1582,7 +1582,7 @@ void upgradeScreen(
                  << "!\n";
 
             cout << "Recruitment is now "
-                 << trainingTier * 5
+                 << trainingTier * 10
                  << "% cheaper.\n";
 
             pauseScreen();
@@ -1770,8 +1770,8 @@ void getEnemyUnits(
             "Scout Robot",
             80,
             100,
-            30,
-            20,
+            28,
+            17,
             14
         };
 
@@ -1780,8 +1780,8 @@ void getEnemyUnits(
             "Combat Robot",
             200,
             240,
-            50,
-            40,
+            45,
+            36,
             9
         };
 
@@ -1790,8 +1790,8 @@ void getEnemyUnits(
             "Robot Tank",
             450,
             550,
-            85,
-            65,
+            70,
+            45,
             6
         };
 
@@ -1800,8 +1800,8 @@ void getEnemyUnits(
             "Destroyer Robot",
             850,
             900,
-            140,
-            85,
+            130,
+            80,
             5
         };
 
@@ -1809,9 +1809,9 @@ void getEnemyUnits(
         {
             "ROBOT OVERLORD",
             2200,
-            1400,
-            210,
-            120,
+            1200,
+            200,
+            100,
             8
         };
 
@@ -1829,18 +1829,18 @@ void getEnemyUnits(
             "Mutant",
             70,
             120,
-            28,
+            26,
             8,
-            10
+            11
         };
 
         enemyUnits[1] =
         {
             "Mutant Brute",
             180,
-            300,
-            50,
-            25,
+            270,
+            40,
+            20,
             6
         };
 
@@ -1848,9 +1848,9 @@ void getEnemyUnits(
         {
             "Mutant Beast",
             400,
-            600,
-            90,
-            35,
+            550,
+            70,
+            30,
             7
         };
 
@@ -1859,8 +1859,8 @@ void getEnemyUnits(
             "Mutant Abomination",
             800,
             950,
-            135,
-            55,
+            130,
+            50,
             4
         };
 
@@ -1869,8 +1869,8 @@ void getEnemyUnits(
             "MUTANT ALPHA",
             2000,
             1500,
-            220,
-            80,
+            190,
+            70,
             6
         };
 
@@ -1890,8 +1890,8 @@ void getEnemyUnits(
                 "Rebel Soldier",
                 90,
                 110,
-                28,
-                13,
+                27,
+                12,
                 11
             };
 
@@ -1900,8 +1900,8 @@ void getEnemyUnits(
                 "Rebel Heavy",
                 230,
                 230,
-                48,
-                30,
+                45,
+                38,
                 7
             };
 
@@ -1910,8 +1910,8 @@ void getEnemyUnits(
                 "Rebel Tank",
                 450,
                 520,
-                82,
-                50,
+                76,
+                45,
                 5
             };
 
@@ -1920,8 +1920,8 @@ void getEnemyUnits(
                 "Rebel Destroyer",
                 850,
                 850,
-                125,
-                70,
+                110,
+                65,
                 4
             };
 
@@ -1930,8 +1930,8 @@ void getEnemyUnits(
                 "REBEL COMMANDER",
                 1900,
                 1200,
-                190,
-                95,
+                160,
+                80,
                 8
             };
         }
@@ -1941,9 +1941,9 @@ void getEnemyUnits(
             {
                 "Rebel Buggo",
                 65,
-                90,
-                23,
-                9,
+                85,
+                21,
+                7,
                 13
             };
 
@@ -1951,9 +1951,9 @@ void getEnemyUnits(
             {
                 "Rebel Elite Bug",
                 170,
-                180,
-                40,
-                23,
+                160,
+                38,
+                21,
                 10
             };
 
@@ -1961,9 +1961,9 @@ void getEnemyUnits(
             {
                 "Rebel Hive Beast",
                 380,
-                430,
-                75,
-                40,
+                420,
+                70,
+                35,
                 5
             };
 
@@ -1971,9 +1971,9 @@ void getEnemyUnits(
             {
                 "Rebel Hive King",
                 700,
-                750,
-                115,
-                55,
+                730,
+                105,
+                52,
                 4
             };
 
@@ -1981,10 +1981,10 @@ void getEnemyUnits(
             {
                 "REBEL QUEEN",
                 1900,
-                1250,
-                190,
-                95,
-                7
+                1100,
+                175,
+                90,
+                8
             };
         }
 
@@ -2144,16 +2144,16 @@ void createEnemyWave(
     {
         enemyArmy[0] += 2;
 
-        if (wave >= 4)
+        if (wave >= 5)
             enemyArmy[1]++;
 
-        if (wave >= 8)
+        if (wave >= 9)
             enemyArmy[2]++;
 
-        if (wave >= 12)
+        if (wave >= 13)
             enemyArmy[3]++;
 
-        if (wave >= 18)
+        if (wave >= 19)
             enemyArmy[4]++;
     }
 
@@ -2172,10 +2172,10 @@ void createEnemyWave(
         if (wave >= 6)
             enemyArmy[2]++;
 
-        if (wave >= 9)
+        if (wave >= 11)
             enemyArmy[3]++;
 
-        if (wave >= 13)
+        if (wave >= 15)
             enemyArmy[4] = 1;
     }
 
@@ -2187,16 +2187,16 @@ void createEnemyWave(
     {
         enemyArmy[0] += 1;
 
-        if (wave >= 2)
+        if (wave >= 3)
             enemyArmy[1]++;
 
         if (wave >= 5)
             enemyArmy[2]++;
 
-        if (wave >= 9)
+        if (wave >= 10)
             enemyArmy[3]++;
 
-        if (wave >= 14)
+        if (wave >= 16)
             enemyArmy[4] = 1;
     }
 }
@@ -2566,7 +2566,7 @@ bool canAffordAnyUnit(
     {
         int discountedCost =
             units[i].cost *
-            (100 - trainingTier * 5) /
+            (100 - trainingTier * 10) /
             100;
 
         if (i == 4 &&
